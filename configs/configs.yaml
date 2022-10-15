@@ -1,0 +1,36 @@
+Dataset:
+  root_dir: 'F:\\Datasets\\keyword-spotting\\abdulkaderghandoura-arabic-speech-commands-dataset-72f3438\\dataset'
+  noise_path: 'F:\\Datasets\\keyword-spotting\\abdulkaderghandoura-arabic-speech-commands-dataset-72f3438\\background_noise'
+
+
+AudioProcessing:
+  # Init
+  sample_rate: 16000
+  augment: True
+  duration: 1 # second
+
+  Augmentor:
+    prob: 0.8
+    min_shift: -100. # ms
+    max_shift: 100. # ms
+    noise_prob: 0.8
+
+Parameters:
+
+  lr: 0.002
+  lr_decay: 0.99
+  num_workers: 0
+  max_epoch: 50
+  batch_size: 128
+
+  # For TDNN
+  C: 1024
+  m: 0.2
+  s: 30
+  test_step: 1
+
+  device: 'cuda'
+
+RunningFolder:
+  run_path: './checkpoints'
+  score_file: 'score.txt'
