@@ -26,7 +26,7 @@ if __name__ == '__main__':
     parser.add_argument('-seed', type=int, default=2022, help='seed of train')
     parser.add_argument('-stage', type=int, choices=[1, 2], default=1, help='use {1:accuracy,2:eer} to evaluate')
     parser.add_argument('-eval', type=bool, default=False)
-
+    parser.add_argument('-path_to_result', type=str)
     # Parse args
     args = parser.parse_args()
 
@@ -87,8 +87,11 @@ if __name__ == '__main__':
     if args.eval:
         print("Model %s loaded from previous state!" % args.init_model)
         model.load_parameters(args.initial_model)
-        EER, minDCF = model.eval_network(eval_list=args.eval_list, eval_path=args.eval_path)
-        print("EER %2.2f%%, minDCF %.4f%%" % (EER, minDCF))
+        if args.stage == 2:
+            EER, minDCF = model.eval_network(eval_list=args.eval_list, eval_path=args.eval_path)
+            print("EER %2.2f%%, minDCF %.4f%%" % (EER, minDCF))
+        else:
+            res = model.eval_stage_1(valid_loader, classes=info['speaker'], path_to_result=args.path_to_result)
         quit()
     # print(args.init_model)
     if args.init_model is not None:
