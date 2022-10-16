@@ -7,7 +7,7 @@ import torch.nn as nn
 from utils import *
 from losses import AAMsoftmax
 from models import ECAPA_TDNN
-
+import pandas as pd
 
 class ECAPAModel(nn.Module):
     def __init__(self, lr, lr_decay, C, n_class, m, s, test_step, device='cpu', **kwargs):
@@ -35,7 +35,7 @@ class ECAPAModel(nn.Module):
             labels = torch.LongTensor(batch['target']).to(self.device)
             data = batch['input'].to(self.device)
             speaker_embedding = self.speaker_encoder.forward(data, aug=True)
-            nloss, prec = self.speaker_loss.forward(speaker_embedding, labels)
+            nloss, prec, _  = self.speaker_loss.forward(speaker_embedding, labels)
             nloss.backward()
             self.optim.step()
             index += len(labels)
@@ -56,7 +56,7 @@ class ECAPAModel(nn.Module):
                 labels = torch.LongTensor(batch['target']).to(self.device)
                 data = batch['input'].to(self.device)
                 speaker_embedding = self.speaker_encoder.forward(data, aug=False)
-                nloss, prec = self.speaker_loss.forward(speaker_embedding, labels)
+                nloss, prec, _ = self.speaker_loss.forward(speaker_embedding, labels)
                 index += len(labels)
                 top1 += prec
                 loss += nloss.detach().cpu().numpy()
@@ -66,6 +66,54 @@ class ECAPAModel(nn.Module):
                 sys.stderr.flush()
             sys.stdout.write("\n")
             return loss / num, top1 / index * len(labels)
+    def eval_stage_1(self, loader, classes, path_to_result):
+        with torch.no_grad():
+            self.eval()
+            data ={}
+            index, top1, loss = 0, 0, 0
+            for num, batch in enumerate(loader, start=1):
+                labels = torch.LongTensor(batch['target']).to(self.device)
+                data = batch['input'].to(self.device)
+                speaker_embedding = self.speaker_encoder.forward(data, aug=False)
+                nloss, prec, out = self.speaker_loss.forward(speaker_embedding, labels)
+                index += len(labels)
+                top1 += prec
+                loss += nloss.detach().cpu().numpy()
+
+                out = out.data.max(1, keepdim=True)[1].numpy().ravel()
+                labels = labels.cpu().numpy().ravel()
+                for i in range (len(batch)):
+                    word = batch['word'][i]
+                    if word not in data:
+                        data[word] ={
+                            'true': 0,
+                            'false': 0
+                        }
+                    pred = index2label(classes, out[i])
+                    truth = index2label(classes, labels[i])
+                    if pred == truth:
+                        data[word]['true'] += 1
+                    else:
+                        data[word]['false'] += 1
+
+                sys.stderr.write(time.strftime("%m-%d %H:%M:%S") + \
+                                 " Validating: %.2f%%, " % (100 * (num / loader.__len__())) + \
+                                 " Loss: %.5f, ACC: %2.2f%% \r" % (loss / (num), top1 / index * len(labels)))
+                sys.stderr.flush()
+            sys.stdout.write("\n")
+            res = {
+                'word':[],
+                'true':[],
+                'false':[]
+            }
+            for w in data:
+                res['word'].append(w)
+                res['true'].append(data[w]['true'])
+                res['false'].append(data[w]['false'])
+
+            res = pd.DataFrame(res)
+            res.to_csv(path_to_result, index=False)
+            return res
 
     def eval_eer(self, eval_list, eval_path):
         with torch.no_grad():

@@ -102,3 +102,12 @@ def accuracy(output, target, topk=(1,)):
         res.append(correct_k.mul_(100.0 / batch_size))
 
     return res
+
+
+if __name__ == '__main__':
+    import numpy as np
+    t = torch.arange(5)
+    o = torch.rand((5,5))
+    print(o)
+    r = accuracy(o,t)
+    print(r)

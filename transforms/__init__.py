@@ -15,12 +15,13 @@ def build_transform(audio_config,
             min_shift, max_shift = augmentor['min_shift'], augmentor['max_shift'
             ]
             data_transform = Compose(
-                [ChangeAmplitude(prob=prob),
-                 ShiftAudio(min_shift=min_shift, max_shift=max_shift, prob=prob),
-                 StretchAudio(prob=prob),
-                 ChangeSpeedAndPitchAudio(prob=prob),
-                 FixAudioLength(time=duration),
-                 ])
+                [
+                    # ChangeAmplitude(prob=prob),
+                    #  ShiftAudio(min_shift=min_shift, max_shift=max_shift, prob=prob),
+                    #  StretchAudio(prob=prob),
+                    #  ChangeSpeedAndPitchAudio(prob=prob),
+                    FixAudioLength(time=duration),
+                ])
         else:
             data_transform = FixAudioLength()
 

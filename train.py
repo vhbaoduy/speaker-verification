@@ -81,7 +81,8 @@ if __name__ == '__main__':
                        m=param_cfgs['m'],
                        s=param_cfgs['s'],
                        test_step=param_cfgs['test_step'],
-                       n_class=len(info['speakers']))
+                       n_class=len(info['speakers']),
+                       device=param_cfgs['device'])
 
     if args.eval:
         print("Model %s loaded from previous state!" % args.init_model)
@@ -123,7 +124,7 @@ if __name__ == '__main__':
                     epoch, lr, loss, acc, EERs[-1], min(EERs)))
                 score_file.flush()
             else:
-                _, val_acc = model.eval_acc(epoch=epoch, loader=valid_loader)
+                _, val_acc, _ = model.eval_acc(epoch=epoch, loader=valid_loader)
                 if val_acc > best_score:
                     best_score = val_acc
                     model.save_parameters(folder_cfgs['run_path'] + "/model_best.model")

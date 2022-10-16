@@ -30,4 +30,4 @@ class AAMsoftmax(nn.Module):
         loss = self.ce(output, label)
         prec1 = accuracy(output.detach(), label.detach(), topk=(1,))[0]
 
-        return loss, prec1
+        return loss, prec1, output
