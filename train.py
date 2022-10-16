@@ -86,7 +86,7 @@ if __name__ == '__main__':
 
     if args.eval:
         print("Model %s loaded from previous state!" % args.init_model)
-        model.load_parameters(args.initial_model)
+        model.load_parameters(args.init_model)
         if args.stage == 2:
             EER, minDCF = model.eval_network(eval_list=args.eval_list, eval_path=args.eval_path)
             print("EER %2.2f%%, minDCF %.4f%%" % (EER, minDCF))
@@ -97,7 +97,7 @@ if __name__ == '__main__':
     if args.init_model is not None:
         print("Model %s loaded from previous state!" % args.init_model)
         # s = ECAPAModel(**vars(args))
-        model.load_parameters(args.initial_model)
+        model.load_parameters(args.init_model)
         epoch = 1
 
     EERs = []
