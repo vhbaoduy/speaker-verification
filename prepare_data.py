@@ -9,7 +9,7 @@ GG_SPEECH_V2 = 'http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz
 GG_SPEECH_V1 = 'http://download.tensorflow.org/data/speech_commands_v0.01.tar.gz'
 
 
-def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', label_type=None, df_path=None, info_path=None,
+def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None, info_path=None,
                  seed=2022):
     if not os.path.exists(out_dir):
         os.mkdir(out_dir)
@@ -72,10 +72,9 @@ if __name__ == '__main__':
     parser.add_argument('-out_dir', type=str, default='./output', help='path to output dir')
     parser.add_argument('-split_ratio', type=float, default=0.6, help='split ratio in train and valid')
     parser.add_argument('-dataset_name', type=str, default='arabic',
-                        choices=['arabic', 'gg-speech-v0.01', 'gg-speech-v0.02'])
-    parser.add_argument('-label_type', type=str, choices=['digit', 'iot'])
-    parser.add_argument('-filtered_df', type=str, help='path to filtered df gg-speech-command')
-    parser.add_argument('-info_path', type=str, help='path to info.json gg-speech-command')
+                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2'])
+    parser.add_argument('-filtered_df', type=str,default='./data/gg-speech-v0.1/digits/df_filter_5.csv', help='path to filtered df gg-speech-command')
+    parser.add_argument('-info_path', type=str,default='./data/gg-speech_v0.1/digits/filter_5.json', help='path to info.json gg-speech-command')
     # parser.add_argument('-noise_path', type=str, default ='./noise_data')
     parser.add_argument('-seed', type=int, default=2022)
     args = parser.parse_args()
@@ -84,7 +83,6 @@ if __name__ == '__main__':
                  out_dir=args.out_dir,
                  split_ratio=args.split_ratio,
                  dataset=args.dataset_name,
-                 label_type=args.label_type,
                  df_path=args.filtered_df,
                  info_path=args.info_path,
                  seed=args.seed)
