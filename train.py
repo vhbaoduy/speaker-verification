@@ -93,7 +93,7 @@ if __name__ == '__main__':
             EER, minDCF = model.eval_network(eval_list=args.eval_list, eval_path=args.eval_path)
             print("EER %2.2f%%, minDCF %.4f%%" % (EER, minDCF))
         else:
-            res = model.eval_stage_1(valid_loader, classes=info['speaker'], path_to_result=args.path_to_result)
+            res = model.eval_stage_1(valid_loader, classes=info['speakers'], path_to_result=args.path_to_result)
         quit()
     # print(args.init_model)
     if args.init_model is not None:
