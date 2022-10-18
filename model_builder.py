@@ -62,7 +62,7 @@ class ECAPAModel(nn.Module):
                 top1 += prec
                 loss += nloss.detach().cpu().numpy()
                 sys.stderr.write(time.strftime("%m-%d %H:%M:%S") + \
-                                 " [%2d], Validating: %.2f%%, " % (epoch, 100 * (num / loader.__len__())) + \
+                                 " [%2d] Validating: %.2f%%, " % (epoch, 100 * (num / loader.__len__())) + \
                                  " Loss: %.5f, ACC: %2.2f%% \r" % (loss / (num), top1 / index * len(labels)))
                 sys.stderr.flush()
             sys.stdout.write("\n")
@@ -82,7 +82,7 @@ class ECAPAModel(nn.Module):
                 top1 += prec
                 loss += nloss.detach().cpu().numpy()
 
-                out = out.data.max(1, keepdim=True)[1].numpy().ravel()
+                out = out.data.max(1, keepdim=True)[1].cpu().numpy().ravel()
                 labels = labels.cpu().numpy().ravel()
                 for i in range(len(batch)):
                     word = batch['word'][i]

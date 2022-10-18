@@ -14,6 +14,9 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Train model')
     parser.add_argument('-root_dir', type=str, default='./data', help='path to root dir dataset')
+    parser.add_argument('-dataset_name', type=str, required=True, choices=['arabic', 'gg-speech-v0.01', 'gg-speech-v0.2'],
+                        help='name of dataset')
+
     parser.add_argument('-df_train', type=str, default='./output/train.csv', help='path to df train in prepare_data.py')
     parser.add_argument('-df_valid', type=str, default='./output/val.csv', help='path to df valid in prepare_data.py')
     parser.add_argument('-info_data', type=str, default='./output/info.json', help='path to info of data')
@@ -49,17 +52,19 @@ if __name__ == '__main__':
 
     torch.manual_seed(args.seed)
 
-    train_dataset = ArabicDataset(root_dir=dataset_cfgs['root_dir'],
-                                  path_to_df=args.df_train,
-                                  classes=info['speakers'],
-                                  sample_rate=audio_cfgs['sample_rate'],
-                                  transform=train_transform)
+    train_dataset = GeneralDataset(root_dir=dataset_cfgs['root_dir'],
+                                   path_to_df=args.df_train,
+                                   classes=info['speakers'],
+                                   sample_rate=audio_cfgs['sample_rate'],
+                                   dataset_name=args.dataset_name,
+                                   transform=train_transform)
 
-    valid_dataset = ArabicDataset(root_dir=dataset_cfgs['root_dir'],
-                                  path_to_df=args.df_valid,
-                                  classes=info['speakers'],
-                                  sample_rate=audio_cfgs['sample_rate'],
-                                  transform=valid_transform)
+    valid_dataset = GeneralDataset(root_dir=dataset_cfgs['root_dir'],
+                                   path_to_df=args.df_valid,
+                                   classes=info['speakers'],
+                                   sample_rate=audio_cfgs['sample_rate'],
+                                   dataset_name=args.dataset_name,
+                                   transform=valid_transform)
 
     train_loader = DataLoader(train_dataset,
                               batch_size=param_cfgs['batch_size'],
@@ -71,10 +76,7 @@ if __name__ == '__main__':
                               num_workers=param_cfgs['num_workers'],
                               shuffle=False)
 
-    # for batch in train_loader:
-    #     print(batch)
-    #     break
-    # print(**(param_cfgs))
+
     model = ECAPAModel(lr=param_cfgs['lr'],
                        lr_decay=param_cfgs['lr_decay'],
                        C=param_cfgs['C'],

@@ -1,1 +1,1 @@
-from .ArabicDataset import *
+from .GeneralDataset import *
