@@ -2,7 +2,14 @@
 This part is used to train the speaker model and evaluate the performances
 '''
 
-import torch, sys, os, tqdm, numpy, soundfile, time, pickle
+import torch
+import sys
+import os
+import tqdm
+import numpy
+import soundfile
+import time
+import pickle
 import torch.nn as nn
 from utils import *
 from losses import AAMsoftmax
@@ -10,6 +17,7 @@ from models import ECAPA_TDNN
 import pandas as pd
 from metrics import *
 from transforms import build_transform
+import copy
 
 
 class ECAPAModel(nn.Module):
@@ -20,25 +28,27 @@ class ECAPAModel(nn.Module):
         param_cfgs = configs['Parameters']
 
         device = param_cfgs['device']
-        ## ECAPA-TDNN
+        # ECAPA-TDNN
         self.speaker_encoder = ECAPA_TDNN(C=param_cfgs['C']).to(device)
-        ## Classifier
-        self.speaker_loss = AAMsoftmax(n_class=n_class, m=param_cfgs['m'], s=param_cfgs['s']).to(device)
+        # Classifier
+        self.speaker_loss = AAMsoftmax(
+            n_class=n_class, m=param_cfgs['m'], s=param_cfgs['s']).to(device)
 
-        self.optim = torch.optim.Adam(self.parameters(), lr=param_cfgs['lr'], weight_decay=2e-5)
+        self.optim = torch.optim.Adam(
+            self.parameters(), lr=param_cfgs['lr'], weight_decay=2e-5)
         self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim,
-                                                         step_size=param_cfgs['test_size'],
+                                                         step_size=param_cfgs['test_step'],
                                                          gamma=param_cfgs['lr_decay'])
 
         self.device = device
         self.param_cfgs = param_cfgs
         print(time.strftime("%m-%d %H:%M:%S") + " Model para number = %.2f" % (
-                sum(param.numel() for param in self.speaker_encoder.parameters()) / 1024 / 1024))
+            sum(param.numel() for param in self.speaker_encoder.parameters()) / 1024 / 1024))
 
     def train_network(self, epoch, loader):
         self.train()
         metric = AccumulatedAccuracyMetric()
-        ## Update the learning rate based on the current epcoh
+        # Update the learning rate based on the current epcoh
         self.scheduler.step(epoch - 1)
         index, top1, loss = 0, 0, 0
         lr = self.optim.param_groups[0]['lr']
@@ -48,7 +58,8 @@ class ECAPAModel(nn.Module):
             labels = torch.LongTensor(batch['target']).to(self.device)
             data = batch['input'].to(self.device)
             speaker_embedding = self.speaker_encoder.forward(data, aug=True)
-            nloss, prec, preds = self.speaker_loss.forward(speaker_embedding, labels)
+            nloss, prec, preds = self.speaker_loss.forward(
+                speaker_embedding, labels)
             nloss.backward()
             self.optim.step()
             index += len(labels)
@@ -56,8 +67,8 @@ class ECAPAModel(nn.Module):
             loss += nloss.detach().cpu().numpy()
 
             metric(preds, labels, nloss)
-            sys.stderr.write(time.strftime("%m-%d %H:%M:%S") + \
-                             " [%2d] Lr: %5f, Training: %.2f%%, " % (epoch, lr, 100 * (num / loader.__len__())) + \
+            sys.stderr.write(time.strftime("%m-%d %H:%M:%S") +
+                             " [%2d] Lr: %5f, Training: %.2f%%, " % (epoch, lr, 100 * (num / loader.__len__())) +
                              " Loss: %.5f, ACC: %2.2f%% \r" % (loss / (num), metric.value()))
             sys.stderr.flush()
         sys.stdout.write("\n")
@@ -71,15 +82,17 @@ class ECAPAModel(nn.Module):
             for num, batch in enumerate(loader, start=1):
                 labels = torch.LongTensor(batch['target']).to(self.device)
                 data = batch['input'].to(self.device)
-                speaker_embedding = self.speaker_encoder.forward(data, aug=False)
-                nloss, prec, preds = self.speaker_loss.forward(speaker_embedding, labels)
+                speaker_embedding = self.speaker_encoder.forward(
+                    data, aug=False)
+                nloss, prec, preds = self.speaker_loss.forward(
+                    speaker_embedding, labels)
                 index += len(labels)
                 top1 += prec
                 loss += nloss.detach().cpu().numpy()
 
                 metric(preds, labels, nloss)
-                sys.stderr.write(time.strftime("%m-%d %H:%M:%S") + \
-                                 " [%2d] Validating: %.2f%%, " % (epoch, 100 * (num / loader.__len__())) + \
+                sys.stderr.write(time.strftime("%m-%d %H:%M:%S") +
+                                 " [%2d] Validating: %.2f%%, " % (epoch, 100 * (num / loader.__len__())) +
                                  " Loss: %.5f, ACC: %2.2f%% \r" % (loss / (num), metric.value()))
                 sys.stderr.flush()
             sys.stdout.write("\n")
@@ -94,15 +107,18 @@ class ECAPAModel(nn.Module):
             for num, batch in enumerate(loader, start=1):
                 labels = torch.LongTensor(batch['target']).to(self.device)
                 data = batch['input'].to(self.device)
-                speaker_embedding = self.speaker_encoder.forward(data, aug=False)
-                nloss, prec, preds = self.speaker_loss.forward(speaker_embedding, labels)
+                speaker_embedding = self.speaker_encoder.forward(
+                    data, aug=False)
+                nloss, prec, preds = self.speaker_loss.forward(
+                    speaker_embedding, labels)
                 index += len(labels)
                 top1 += prec
                 loss += nloss.detach().cpu().numpy()
 
                 metric(preds, labels, nloss)
 
-                preds = preds.data.max(1, keepdim=True)[1].cpu().numpy().ravel()
+                preds = preds.data.max(1, keepdim=True)[
+                    1].cpu().numpy().ravel()
                 labels = labels.cpu().numpy().ravel()
                 for i in range(len(batch['input'])):
                     word = batch['word'][i]
@@ -118,8 +134,8 @@ class ECAPAModel(nn.Module):
                     else:
                         stat[word]['false'] += 1
 
-                sys.stderr.write(time.strftime("%m-%d %H:%M:%S") + \
-                                 " Validating: %.2f%%, " % (100 * (num / loader.__len__())) + \
+                sys.stderr.write(time.strftime("%m-%d %H:%M:%S") +
+                                 " Validating: %.2f%%, " % (100 * (num / loader.__len__())) +
                                  " Loss: %.5f, ACC: %2.2f%% \r" % (loss / (num), metric.value()))
                 sys.stderr.flush()
             sys.stdout.write("\n")
@@ -156,23 +172,33 @@ class ECAPAModel(nn.Module):
                                       num_stack=5)
             for idx, file in tqdm.tqdm(enumerate(setfiles), total=len(setfiles)):
                 audio, sr = utils.load_audio(os.path.join(eval_path, file))
-                data = {
+                data_1 = {
                     'samples': audio,
                     'sample_rate': sr
                 }
+                data_2 = copy.deepcopy(data_1)
+
                 # audio, _ = soundfile.read(os.path.join(eval_path, file))
                 # Full utterance
                 # data_1 = torch.FloatTensor(numpy.stack([audio], axis=0)).cuda()
-                data_1 = trans_1(data)
-
+                data_1 = trans_1(data_1)
+                # print(data_1)
+                # print("#"*10, data)
                 # Splited utterance matrix
-                data_2 = trans_2(data)
+                data_2 = trans_2(data_2)
+                data_1 = data_1['input'].to(self.device)
+                data_2 = data_2['input'].to(self.device)
+                # data_2 = data_2.unsqueeze(1)
                 # Speaker embeddings
                 with torch.no_grad():
-                    embedding_1 = self.speaker_encoder.forward(data_1['input'], aug=False)
+                    embedding_1 = self.speaker_encoder.forward(
+                        data_1, aug=False)
                     embedding_1 = F.normalize(embedding_1, p=2, dim=1)
-                    embedding_2 = self.speaker_encoder.forward(data_2['input'], aug=False)
+                    embedding_2 = self.speaker_encoder.forward(
+                        data_2, aug=False)
                     embedding_2 = F.normalize(embedding_2, p=2, dim=1)
+                # embedding_1 = embedding_1.detach().cpu().numpy()
+                # embedding_2 = embedding_2.detach().cpu().numpy()
                 embeddings[file] = [embedding_1, embedding_2]
             scores, labels = [], []
 
@@ -180,8 +206,10 @@ class ECAPAModel(nn.Module):
                 embedding_11, embedding_12 = embeddings[line.split()[1]]
                 embedding_21, embedding_22 = embeddings[line.split()[2]]
                 # Compute the scores
-                score_1 = torch.mean(torch.matmul(embedding_11, embedding_21.T))  # higher is positive
-                score_2 = torch.mean(torch.matmul(embedding_12, embedding_22.T))
+                score_1 = torch.mean(torch.matmul(
+                    embedding_11, embedding_21.T))  # higher is positive
+                score_2 = torch.mean(torch.matmul(
+                    embedding_12, embedding_22.T))
                 score = (score_1 + score_2) / 2
                 score = score.detach().cpu().numpy()
                 scores.append(score)
@@ -214,12 +242,17 @@ class ECAPAModel(nn.Module):
 
 
 if __name__ == '__main__':
-    model = ECAPAModel(lr=0.002,
-                       lr_decay=0.99,
-                       C=1024,
-                       n_class=30,
-                       m=0.2,
-                       s=30,
-                       test_step=1,
-                       device='cpu')
-    print(model)
+    configs = utils.load_config_file('configs/configs.yaml')
+    model = ECAPA_TDNN(C=1024)
+    trans = build_transform(audio_config=configs['AudioProcessing'],
+                    mode='eval',
+                    num_stack=3)
+    audio, sr = utils.load_audio(
+        './combine_data\\0ff728b5\\five_0_five_0_.wav', 16000)
+    data = {
+        'samples': audio,
+        'sample_rate': sr
+    }
+    data = trans(data)
+    from IPython import embed
+    embed()

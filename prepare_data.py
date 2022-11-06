@@ -42,11 +42,12 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
                     if file.endswith('.wav'):
                         att = file[:-4].split('_')
                         data['word'].append(word)
-                        data['speaker'].append(int(att[0]))
+                        data['speaker'].append(str(int(att[0])))
                         data['file'].append(word + '/' + file)
 
             infor['words'] = sorted(list(set(data['word'])))
             infor['speakers'] = sorted(list(set(data['speaker'])))
+            infor['n_samples'] = 10
 
             df = pd.DataFrame(data)
             df.to_csv(os.path.join(path, 'data.csv'), index=False)
@@ -57,6 +58,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
 
             infor['words'] = sorted(info['words'])
             infor['speakers'] = sorted(info['speakers'])
+            infor['n_samples'] = info['n_samples']
 
         with open(os.path.join(path, 'info.json'), 'w') as fout:
             json.dump(infor, fout)
@@ -94,7 +96,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
         }
         print('Creating train data....')
         for sp in speaker_train:
-            files = os.listdir(os.path.join(root_dir, sp))
+            files = os.listdir(os.path.join(root_dir, str(sp)))
             for f in files:
                 train['file'].append(sp + '/' + f)
                 train['speaker'].append(sp)
@@ -104,6 +106,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
         print('Total train: ', len(df_train))
         print('Saved at', os.path.join(path, 'train.csv'))
         print('Creating valid data...')
+        assert verification_num < infor['n_samples'] - 1
         if verification_num == 0:
             verification_num = infor['n_samples'] - 1
         f = open(os.path.join(path, 'verification.txt'), 'w')

@@ -158,6 +158,7 @@ if __name__ == '__main__':
                                         musan_path='F:/Datasets/keyword-spotting/musan/musan')
     trans = Compose([FixAudioLength(time=1, add_sample=240, num=1),
                      Augmentation(bg_dataset=noise_dataset),
+                     ToTensor('samples', 'input')
                      ],
                     )
     data = {}
@@ -165,7 +166,9 @@ if __name__ == '__main__':
     # print(data['samples'].shape)
     data['sample_rate'] = 16000
     data = trans(data)
-
+    from IPython import embed
+    embed()
+    # data['input'].size())
     # print(data['samples'][0].shape)
     # # torchaudio.save('sound.wav', data['samples'], 16000)
-    soundfile.write('sample.wav',data['samples'][0],16000)
+    # soundfile.write('sample.wav',data['samples'][0],16000)

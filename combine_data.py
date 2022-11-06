@@ -68,8 +68,9 @@ def create_data(config):
 
     # Read dataframe and infor
     df = pd.read_csv(config['df_path'])
+    df['speaker'] = df['speaker'].map(str)
     info = utils.read_json(config['info_path'])
-    n = info['n']
+    n = info['n_samples']
     assert config['n_samples'] <= n ** len(config['words'])
 
     # np.random.seed(seed)
@@ -93,7 +94,7 @@ def create_data(config):
     pbar = tqdm(info['speakers'])
     for i, sp in enumerate(pbar):
         # Create dir
-        path = os.path.join(config['out_dir'], sp)
+        path = os.path.join(config['out_dir'], str(sp))
         if not os.path.exists(path):
             os.mkdir(path)
         combine_files = generate_file(info_combine[sp], config['words'], n_samples=config['n_samples'])

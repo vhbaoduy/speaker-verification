@@ -66,5 +66,10 @@ if __name__ == '__main__':
     # combine_waves(src,
     #               des,
     #               wave_files)
-    audio, sr = load_audio(src, 16000)
-    print(len(audio), sr)
+    import numpy
+    import torch
+    audio, _ = soundfile.read(src)
+    # Full utterance
+    data_1 = torch.FloatTensor(numpy.stack([audio], axis=0))
+    # audio, sr = load_audio(src, 16000)
+    print(data_1.size())

@@ -19,7 +19,7 @@ def init_args(args):
 def tuneThresholdfromScore(scores, labels, target_fa, target_fr=None):
     fpr, tpr, thresholds = metrics.roc_curve(labels, scores, pos_label=1)
     fnr = 1 - tpr
-    tunedThreshold = [];
+    tunedThreshold = []
     if target_fr:
         for tfr in target_fr:
             idx = numpy.nanargmin(numpy.absolute((tfr - fnr)))

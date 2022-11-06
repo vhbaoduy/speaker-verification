@@ -17,6 +17,7 @@ class GeneralDataset(Dataset):
                  classes,
                  sample_rate,
                  dataset_name='arabic',
+                 stage=1,
                  transform=None):
         """
         :param root_dir: Path to root dataset path_to/dataset/
@@ -34,26 +35,27 @@ class GeneralDataset(Dataset):
         self.sample_rate = sample_rate
         self.transform = transform
         self.dataset_name = dataset_name
+        self.stage = stage
 
     def __len__(self):
         return len(self.df)
 
     def __getitem__(self, idx):
         row_data = self.df.iloc[idx]
-        wav, _ = utils.load_audio(os.path.join(self.root_dir, str(row_data['file'])), self.sample_rate)
+        wav, _ = utils.load_audio(os.path.join(
+            self.root_dir, str(row_data['file'])), self.sample_rate)
         # print(row_data)
-        if self.dataset_name == 'arabic':
-            target = utils.label2index(self.classes, int(row_data['speaker']))
-        elif self.dataset_name.startswith('gg-speech'):
-            target = utils.label2index(self.classes, row_data['speaker'])
+        target = utils.label2index(self.classes, row_data['speaker'])
 
         data = {
             'samples': wav,
-            'word': row_data['word'],
             'sample_rate': self.sample_rate,
             'target': target,
             'path': row_data['file']
         }
+
+        if self.stage == 1:
+            data['word'] = row_data['word'],
 
         if self.transform is not None:
             data = self.transform(data)
@@ -63,7 +65,8 @@ class GeneralDataset(Dataset):
 
 class BackgroundNoiseDataset(Dataset):
     def __init__(self, path, transform, sample_rate, sample_length=1):
-        noise_files = [file for file in os.listdir(path) if file.endswith('.wav')]
+        noise_files = [file for file in os.listdir(
+            path) if file.endswith('.wav')]
         samples = []
         for f in noise_files:
             noise_path = os.path.join(path, f)
@@ -102,17 +105,18 @@ class AugmentationDataset(object):
         # self.sample_rate = sample_rate
         # self.add_sample = add_sample
         self.noise_types = ['noise', 'speech', 'music']
-        self.noises_nr = {'noise': [0, 15], 'speech': [13, 20], 'music': [5, 15]}
+        self.noises_nr = {'noise': [0, 15],
+                          'speech': [13, 20], 'music': [5, 15]}
         self.num_noise = {'noise': [1, 1], 'speech': [3, 8], 'music': [1, 1]}
         self.noise_list = {}
 
         # / or \\
         augment_files = glob.glob(os.path.join(musan_path, '*/*/*.wav'))
         for file in augment_files:
-            if file.split('\\')[-3] not in self.noise_list:
-                self.noise_list[file.split('\\')[-3]] = []
+            if file.split('/')[-3] not in self.noise_list:
+                self.noise_list[file.split('/')[-3]] = []
             # print(file.split('/')[-3])
-            self.noise_list[file.split('\\')[-3]].append(file)
+            self.noise_list[file.split('/')[-3]].append(file)
         self.rir_files = glob.glob(os.path.join(rir_path, '*/*/*.wav'))
 
     def add_reverberate(self, audio):
@@ -130,19 +134,23 @@ class AugmentationDataset(object):
         _, length = audio.shape
         clean_db = 10 * np.log10(np.mean(audio ** 2) + 1e-4)
         num_noise = self.num_noise[noise_category]
-        noise_list = random.sample(self.noise_list[noise_category], random.randint(num_noise[0], num_noise[1]))
+        noise_list = random.sample(
+            self.noise_list[noise_category], random.randint(num_noise[0], num_noise[1]))
         noises = []
         for noise in noise_list:
             noise_audio, sr = soundfile.read(noise)
             if noise_audio.shape[0] <= length:
                 shortage = length - noise_audio.shape[0]
                 noise_audio = np.pad(noise_audio, (0, shortage), 'wrap')
-            start_frame = np.int64(random.random() * (noise_audio.shape[0] - length))
+            start_frame = np.int64(
+                random.random() * (noise_audio.shape[0] - length))
             noise_audio = noise_audio[start_frame:start_frame + length]
             noise_audio = np.stack([noise_audio], axis=0)
             noise_db = 10 * np.log10(np.mean(noise_audio ** 2) + 1e-4)
-            noise_snr = random.uniform(self.noises_nr[noise_category][0], self.noises_nr[noise_category][1])
-            noises.append(np.sqrt(10 ** ((clean_db - noise_db - noise_snr) / 10)) * noise_audio)
+            noise_snr = random.uniform(
+                self.noises_nr[noise_category][0], self.noises_nr[noise_category][1])
+            noises.append(
+                np.sqrt(10 ** ((clean_db - noise_db - noise_snr) / 10)) * noise_audio)
 
         noise = np.sum(np.concatenate(noises, axis=0), axis=0, keepdims=True)
         return audio + noise

@@ -51,7 +51,7 @@ def filter_data(df, words, n_samples):
     info = {
         'speakers': list(speakers),
         'words': words,
-        'n': n_samples,
+        'n_samples': n_samples,
     }
     return info
 
@@ -84,7 +84,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser('Prepare and filter google speech command dataset')
     parser.add_argument('-root_dir', type=str, help='path to dataset ./speech_commands_v0.01')
     parser.add_argument('-out_dir', type=str, help='path to folders')
-    parser.add_argument('n_samples', type=int, help='the number of samples per speakers for each words', default=5)
+    parser.add_argument('-n_samples', type=int, help='the number of samples per speakers for each words', default=5)
+    parser.add_argument('-type', type=str, choice=['mix', 'digit', 'iot'], default='mix')
     parser.add_argument('-seed', type=int, default=2022)
     args = parser.parse_args()
 

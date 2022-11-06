@@ -128,9 +128,4 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-./output
-./checkpoints
-./data
-./gg-speech-v0.001
-./out2
-./checkpoints
+.backup/

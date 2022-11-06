@@ -1,9 +1,9 @@
 dataset: 'arabic' # ['arabic', 'google-speech-command']
-root_dir: 'F:\\Datasets\\speech_commands_v0.01'
+root_dir: 'F:/Datasets/keyword-spotting/abdulkaderghandoura-arabic-speech-commands-dataset-72f3438/dataset'
 out_dir: './combine_data'
-df_path: './data/gg-speech-v0.1/data_filter_5.csv'
-info_path: './data/gg-speech-v0.1/filter_5.json'
-n_samples: 5
+df_path: './output/stage1/data.csv'
+info_path: './output/stage1/info.json'
+n_samples: 10
 ratio_split: 0.5  # the number of speakers
-words: ['five', 'five']
+words: ['previous', 'previous']
 mode: 'duplicate'

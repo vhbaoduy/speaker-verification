@@ -8,7 +8,7 @@ Dataset:
 AudioProcessing:
   # Init
   sample_rate: 16000
-  duration: 1 # second
+  duration: 2 # second
   add_sample: 240 #
   # Sample = sr * duration + add_sample
 
@@ -24,7 +24,7 @@ Parameters:
   m: 0.2
   s: 30
   test_step: 1
-  device: 'cuda'
+  device: 'cpu'
 
 RunningFolder:
   run_path: './checkpoints'
