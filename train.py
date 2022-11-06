@@ -1,20 +1,17 @@
 import argparse
-import json
 import math
 import warnings
-
 from torch.utils.data import DataLoader
-
 from datasets import *
 from model_builder import *
-from transforms import *
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Train model')
     parser.add_argument('-root_dir', type=str, default='./data', help='path to root dir dataset')
-    parser.add_argument('-dataset_name', type=str, required=True, choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2'],
+    parser.add_argument('-dataset_name', type=str, required=True,
+                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2'],
                         help='name of dataset')
 
     parser.add_argument('-df_train', type=str, default='./output/train.csv', help='path to df train in prepare_data.py')
@@ -76,15 +73,8 @@ if __name__ == '__main__':
                               num_workers=param_cfgs['num_workers'],
                               shuffle=False)
 
-
-    model = ECAPAModel(lr=param_cfgs['lr'],
-                       lr_decay=param_cfgs['lr_decay'],
-                       C=param_cfgs['C'],
-                       m=param_cfgs['m'],
-                       s=param_cfgs['s'],
-                       test_step=param_cfgs['test_step'],
-                       n_class=len(info['speakers']),
-                       device=param_cfgs['device'])
+    model = ECAPAModel(configs=configs,
+                       n_class=len(info['speakers']))
 
     if args.eval:
         print("Model %s loaded from previous state!" % args.init_model)
@@ -98,12 +88,10 @@ if __name__ == '__main__':
     # print(args.init_model)
     if args.init_model is not None:
         print("Model %s loaded from previous state!" % args.init_model)
-        # s = ECAPAModel(**vars(args))
         model.load_parameters(args.init_model)
         epoch = 1
 
     EERs = []
-
     best_score = -math.inf
     if not os.path.exists(folder_cfgs['run_path']):
         os.mkdir(folder_cfgs['run_path'])
@@ -129,7 +117,7 @@ if __name__ == '__main__':
                     epoch, lr, loss, acc, EERs[-1], min(EERs)))
                 score_file.flush()
             else:
-                _, val_acc= model.eval_acc(epoch=epoch, loader=valid_loader)
+                _, val_acc = model.eval_acc(epoch=epoch, loader=valid_loader)
                 if val_acc > best_score:
                     best_score = val_acc
                     model.save_parameters(folder_cfgs['run_path'] + "/model_best.model")

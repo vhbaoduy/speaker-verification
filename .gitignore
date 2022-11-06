@@ -130,3 +130,7 @@ dmypy.json
 
 ./output
 ./checkpoints
+./data
+./gg-speech-v0.001
+./out2
+./checkpoints

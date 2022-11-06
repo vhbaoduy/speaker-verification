@@ -9,19 +9,29 @@ from losses import AAMsoftmax
 from models import ECAPA_TDNN
 import pandas as pd
 from metrics import *
+from transforms import build_transform
+
 
 class ECAPAModel(nn.Module):
-    def __init__(self, lr, lr_decay, C, n_class, m, s, test_step, device='cpu', **kwargs):
+    def __init__(self, configs, n_class):
         super(ECAPAModel, self).__init__()
-        ## ECAPA-TDNN
-        self.speaker_encoder = ECAPA_TDNN(C=C).to(device)
-        ## Classifier
-        self.speaker_loss = AAMsoftmax(n_class=n_class, m=m, s=s).to(device)
+        self.configs = configs
+        self.audio_cfgs = configs['AudioProcessing']
+        param_cfgs = configs['Parameters']
 
-        self.optim = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=2e-5)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim, step_size=test_step, gamma=lr_decay)
+        device = param_cfgs['device']
+        ## ECAPA-TDNN
+        self.speaker_encoder = ECAPA_TDNN(C=param_cfgs['C']).to(device)
+        ## Classifier
+        self.speaker_loss = AAMsoftmax(n_class=n_class, m=param_cfgs['m'], s=param_cfgs['s']).to(device)
+
+        self.optim = torch.optim.Adam(self.parameters(), lr=param_cfgs['lr'], weight_decay=2e-5)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim,
+                                                         step_size=param_cfgs['test_size'],
+                                                         gamma=param_cfgs['lr_decay'])
 
         self.device = device
+        self.param_cfgs = param_cfgs
         print(time.strftime("%m-%d %H:%M:%S") + " Model para number = %.2f" % (
                 sum(param.numel() for param in self.speaker_encoder.parameters()) / 1024 / 1024))
 
@@ -32,7 +42,6 @@ class ECAPAModel(nn.Module):
         self.scheduler.step(epoch - 1)
         index, top1, loss = 0, 0, 0
         lr = self.optim.param_groups[0]['lr']
-
 
         for num, batch in enumerate(loader, start=1):
             self.zero_grad()
@@ -95,7 +104,7 @@ class ECAPAModel(nn.Module):
 
                 preds = preds.data.max(1, keepdim=True)[1].cpu().numpy().ravel()
                 labels = labels.cpu().numpy().ravel()
-                for i in range(len(batch)):
+                for i in range(len(batch['input'])):
                     word = batch['word'][i]
                     if word not in stat:
                         stat[word] = {
@@ -139,28 +148,30 @@ class ECAPAModel(nn.Module):
                 files.append(line.split()[2])
             setfiles = list(set(files))
             setfiles.sort()
-
+            trans_1 = build_transform(audio_config=self.audio_cfgs,
+                                      mode='eval',
+                                      num_stack=1)
+            trans_2 = build_transform(audio_config=self.audio_cfgs,
+                                      mode='eval',
+                                      num_stack=5)
             for idx, file in tqdm.tqdm(enumerate(setfiles), total=len(setfiles)):
-                audio, _ = soundfile.read(os.path.join(eval_path, file))
+                audio, sr = utils.load_audio(os.path.join(eval_path, file))
+                data = {
+                    'samples': audio,
+                    'sample_rate': sr
+                }
+                # audio, _ = soundfile.read(os.path.join(eval_path, file))
                 # Full utterance
-                data_1 = torch.FloatTensor(numpy.stack([audio], axis=0)).cuda()
+                # data_1 = torch.FloatTensor(numpy.stack([audio], axis=0)).cuda()
+                data_1 = trans_1(data)
 
-                # Spliited utterance matrix
-                max_audio = 300 * 160 + 240
-                if audio.shape[0] <= max_audio:
-                    shortage = max_audio - audio.shape[0]
-                    audio = numpy.pad(audio, (0, shortage), 'wrap')
-                feats = []
-                startframe = numpy.linspace(0, audio.shape[0] - max_audio, num=5)
-                for asf in startframe:
-                    feats.append(audio[int(asf):int(asf) + max_audio])
-                feats = numpy.stack(feats, axis=0).astype(numpy.float)
-                data_2 = torch.FloatTensor(feats).cuda()
+                # Splited utterance matrix
+                data_2 = trans_2(data)
                 # Speaker embeddings
                 with torch.no_grad():
-                    embedding_1 = self.speaker_encoder.forward(data_1, aug=False)
+                    embedding_1 = self.speaker_encoder.forward(data_1['input'], aug=False)
                     embedding_1 = F.normalize(embedding_1, p=2, dim=1)
-                    embedding_2 = self.speaker_encoder.forward(data_2, aug=False)
+                    embedding_2 = self.speaker_encoder.forward(data_2['input'], aug=False)
                     embedding_2 = F.normalize(embedding_2, p=2, dim=1)
                 embeddings[file] = [embedding_1, embedding_2]
             scores, labels = [], []

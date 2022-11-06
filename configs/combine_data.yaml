@@ -1,0 +1,9 @@
+dataset: 'arabic' # ['arabic', 'google-speech-command']
+root_dir: 'F:\\Datasets\\speech_commands_v0.01'
+out_dir: './combine_data'
+df_path: './data/gg-speech-v0.1/data_filter_5.csv'
+info_path: './data/gg-speech-v0.1/filter_5.json'
+n_samples: 5
+ratio_split: 0.5  # the number of speakers
+words: ['five', 'five']
+mode: 'duplicate'

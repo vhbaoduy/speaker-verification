@@ -1,23 +1,36 @@
 import numpy as np
+import soundfile
 import torch
 import random
 import librosa
+import utils
 
 
 class FixAudioLength(object):
     """Either pads or truncates an audio into a fixed length."""
 
-    def __init__(self, time=1):
+    def __init__(self, time=1, add_sample=0, num=1):
         self.time = time
+        self.add_sample = add_sample
+        self.num = num
 
     def __call__(self, data):
         samples = data['samples']
         sample_rate = data['sample_rate']
-        length = int(self.time * sample_rate)
-        if length < len(samples):
-            data['samples'] = samples[:length]
-        elif length > len(samples):
-            data['samples'] = np.pad(samples, (0, length - len(samples)), "constant")
+        max_length = int(self.time * sample_rate) + self.add_sample
+        if len(samples) <= max_length:
+            shortage = max_length - len(samples)
+            samples = np.pad(samples, (0, shortage), "wrap")
+
+        if self.num != 1:
+            feats = []
+            start_frame = np.linspace(0, len(samples) - max_length, num=self.num)
+            for asf in start_frame:
+                feats.append(samples[int(asf):int(asf) + max_length])
+            feats = np.stack(feats, axis=0).astype(np.float32)
+            data['samples'] = feats
+        else:
+            data['samples'] = np.stack([samples], axis=0)
         return data
 
 
@@ -51,7 +64,7 @@ class ChangeSpeedAndPitchAudio(object):
         scale = random.uniform(-self.max_scale, self.max_scale)
         speed_fac = 1.0 / (1 + scale)
         data['samples'] = np.interp(np.arange(0, len(samples), speed_fac), np.arange(0, len(samples)), samples).astype(
-            np.float32)
+            np.float64)
         return data
 
 
@@ -108,20 +121,51 @@ class ToTensor(object):
         return data
 
 
-class AddBackgroundNoise(object):
+class Augmentation(object):
     """ Add background noise to wave"""
 
-    def __init__(self, bg_dataset, max_percentage=0.45, prob=0.5):
+    def __init__(self, bg_dataset):
         self.bg_dataset = bg_dataset
-        self.max_percentage = max_percentage
-        self.prob = prob
 
     def __call__(self, data):
-        if np.random.rand() > self.prob:
-            return data
+        audio = data['samples']
+        augtype = random.randint(0, 5)
+        # audio = self.bg_dataset.add_reverberate(audio)
 
-        samples = data['samples']
-        noise = random.choice(self.bg_dataset)['samples']
-        percentage = random.uniform(0, self.max_percentage)
-        data['samples'] = samples * (1 - percentage) + noise * percentage
+        if augtype == 0:  # Original
+            audio = audio
+        elif augtype == 1:  # Reverberation
+            audio = self.bg_dataset.add_reverberate(audio)
+        elif augtype == 2:  # Babble
+            audio = self.bg_dataset.add_noise(audio, 'speech')
+        elif augtype == 3:  # Music
+            audio = self.bg_dataset.add_noise(audio, 'music')
+        elif augtype == 4:  # Noise
+            audio = self.bg_dataset.add_noise(audio, 'noise')
+        elif augtype == 5:  # Television noise
+            audio = self.bg_dataset.add_noise(audio, 'speech')
+            audio = self.bg_dataset.add_noise(audio, 'music')
+        data['samples'] = audio
         return data
+
+
+# debug
+if __name__ == '__main__':
+    from torchvision.transforms import Compose
+    from datasets import AugmentationDataset
+
+    noise_dataset = AugmentationDataset(rir_path='F:\\Datasets\\keyword-spotting\\RIRS_NOISES\\simulated_rirs',
+                                        musan_path='F:/Datasets/keyword-spotting/musan/musan')
+    trans = Compose([FixAudioLength(time=1, add_sample=240, num=1),
+                     Augmentation(bg_dataset=noise_dataset),
+                     ],
+                    )
+    data = {}
+    data['samples'] = utils.load_audio('F:\\Datasets\\speech_commands_v0.01/five/0b77ee66_nohash_1.wav', 16000)[0]
+    # print(data['samples'].shape)
+    data['sample_rate'] = 16000
+    data = trans(data)
+
+    # print(data['samples'][0].shape)
+    # # torchaudio.save('sound.wav', data['samples'], 16000)
+    soundfile.write('sample.wav',data['samples'][0],16000)

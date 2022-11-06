@@ -106,8 +106,9 @@ def accuracy(output, target, topk=(1,)):
 
 if __name__ == '__main__':
     import numpy as np
+
     t = torch.arange(5)
-    o = torch.rand((5,5))
+    o = torch.rand((5, 5))
     print(o)
-    r = accuracy(o,t)
+    r = accuracy(o, t)
     print(r)
