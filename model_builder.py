@@ -171,7 +171,7 @@ class ECAPAModel(nn.Module):
                                       mode='eval',
                                       num_stack=5)
             for idx, file in tqdm.tqdm(enumerate(setfiles), total=len(setfiles)):
-                audio, sr = utils.load_audio(os.path.join(eval_path, file))
+                audio, sr = utils.load_audio(os.path.join(eval_path, file),self.audio_cfgs['sample_rate'])
                 data_1 = {
                     'samples': audio,
                     'sample_rate': sr

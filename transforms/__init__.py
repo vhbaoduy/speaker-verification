@@ -18,5 +18,5 @@ def build_transform(audio_config,
                                              rir_path=noise_path['rir_path'])
 
             augment = Augmentation(bg_dataset=bg_dataset)
-        return Compose([transform, augment, ToTensor('samples', 'input')])
-    return Compose([transform, ToTensor('samples', 'input')])
+        return Compose([transform, augment, ToTensor('samples', 'input',mode=mode)])
+    return Compose([transform, ToTensor('samples', 'input', mode=mode)])

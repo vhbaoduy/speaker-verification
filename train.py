@@ -62,7 +62,7 @@ if __name__ == '__main__':
                                    classes=classes,
                                    sample_rate=audio_cfgs['sample_rate'],
                                    dataset_name=args.dataset_name,
-                                   stages=args.stage,
+                                   stage=args.stage,
                                    transform=train_transform)
 
     train_loader = DataLoader(train_dataset,

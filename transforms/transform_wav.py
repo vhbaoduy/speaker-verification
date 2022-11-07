@@ -106,13 +106,19 @@ class ShiftAudio(object):
 class ToTensor(object):
     """Converts into a tensor."""
 
-    def __init__(self, np_name, tensor_name, normalize=None):
+    def __init__(self, np_name, tensor_name, normalize=None,mode='train'):
         self.np_name = np_name
         self.tensor_name = tensor_name
         self.normalize = normalize
-
+        self.mode = 'train'
     def __call__(self, data):
-        tensor = torch.FloatTensor(data[self.np_name])
+        d = data[self.np_name]
+        # Check stack when eval
+        if self.mode == 'train' and d.shape[0] == 1:
+            tensor = torch.FloatTensor(d[0])
+        else:
+            tensor = torch.FloatTensor(d)
+        # tensor = torch.FloatTensor(data[self.np_name])
         if self.normalize is not None:
             mean, std = self.normalize
             tensor -= mean

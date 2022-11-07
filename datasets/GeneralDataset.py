@@ -45,7 +45,7 @@ class GeneralDataset(Dataset):
         wav, _ = utils.load_audio(os.path.join(
             self.root_dir, str(row_data['file'])), self.sample_rate)
         # print(row_data)
-        target = utils.label2index(self.classes, row_data['speaker'])
+        target = utils.label2index(self.classes, str(row_data['speaker']))
 
         data = {
             'samples': wav,
