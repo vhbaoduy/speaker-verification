@@ -145,9 +145,12 @@ class ECAPAModel(nn.Module):
                 'false': []
             }
             for w in stat:
+                t = stat[w]['true']
+                f = stat[w]['false']
                 res['word'].append(w)
-                res['true'].append(stat[w]['true'])
-                res['false'].append(stat[w]['false'])
+                res['true'].append(t)
+                res['false'].append(f)
+                res['accuracy'].append(float(t / (t+f)))
 
             res = pd.DataFrame(res)
             res.to_csv(path_to_result, index=False)
@@ -171,7 +174,8 @@ class ECAPAModel(nn.Module):
                                       mode='eval',
                                       num_stack=5)
             for idx, file in tqdm.tqdm(enumerate(setfiles), total=len(setfiles)):
-                audio, sr = utils.load_audio(os.path.join(eval_path, file),self.audio_cfgs['sample_rate'])
+                audio, sr = utils.load_audio(os.path.join(
+                    eval_path, file), self.audio_cfgs['sample_rate'])
                 data_1 = {
                     'samples': audio,
                     'sample_rate': sr
@@ -245,8 +249,8 @@ if __name__ == '__main__':
     configs = utils.load_config_file('configs/configs.yaml')
     model = ECAPA_TDNN(C=1024)
     trans = build_transform(audio_config=configs['AudioProcessing'],
-                    mode='eval',
-                    num_stack=3)
+                            mode='eval',
+                            num_stack=3)
     audio, sr = utils.load_audio(
         './combine_data\\0ff728b5\\five_0_five_0_.wav', 16000)
     data = {

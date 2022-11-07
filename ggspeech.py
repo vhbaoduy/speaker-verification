@@ -68,7 +68,7 @@ def process_data(root_dir, out_dir, words, n_samples, seed=2022):
     with open(os.path.join(out_dir, 'info_filter_%s.json' % n_samples), 'w') as out:
         json.dump(info, out)
 
-    n = info['n']
+    n = info['n_samples']
     result = pd.DataFrame()
     for label in info['words']:
         for speaker in info['speakers']:
@@ -77,19 +77,24 @@ def process_data(root_dir, out_dir, words, n_samples, seed=2022):
             result = pd.concat([result, temp[:n]], ignore_index=True)
     print('The number of samples %d' % len(result))
 
-    result.to_csv(os.path.join(out_dir, 'data_filter_%s.csv' % n_samples), index=False)
+    result.to_csv(os.path.join(out_dir, 'data_filter_%s.csv' %
+                  n_samples), index=False)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('Prepare and filter google speech command dataset')
-    parser.add_argument('-root_dir', type=str, help='path to dataset ./speech_commands_v0.01')
+    parser = argparse.ArgumentParser(
+        'Prepare and filter google speech command dataset')
+    parser.add_argument('-root_dir', type=str,
+                        help='path to dataset ./speech_commands_v0.01')
     parser.add_argument('-out_dir', type=str, help='path to folders')
-    parser.add_argument('-n_samples', type=int, help='the number of samples per speakers for each words', default=5)
-    parser.add_argument('-type', type=str, choice=['mix', 'digit', 'iot'], default='mix')
+    parser.add_argument('-n_samples', type=int,
+                        help='the number of samples per speakers for each words', default=5)
+    parser.add_argument('-type', type=str,
+                        choice=['mix', 'digit', 'iot'], default='mix')
     parser.add_argument('-seed', type=int, default=2022)
     args = parser.parse_args()
 
     process_data(args.root_dir,
                  args.out_dir,
-                 WORDS['mix'],
+                 WORDS[args.type],
                  args.n_samples, seed=args.seed)
