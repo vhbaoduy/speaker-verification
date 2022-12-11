@@ -45,8 +45,11 @@ class GeneralDataset(Dataset):
         wav, _ = utils.load_audio(os.path.join(
             self.root_dir, str(row_data['file'])), self.sample_rate)
         # print(row_data)
-        target = utils.label2index(self.classes, str(row_data['speaker']))
-
+        label = str(row_data['speaker'])
+        if self.dataset_name == 'audio_mnist':
+            if int(row_data['speaker']) < 10:
+                label = '0' + label
+        target = utils.label2index(self.classes,label)
         data = {
             'samples': wav,
             'sample_rate': self.sample_rate,
@@ -55,7 +58,7 @@ class GeneralDataset(Dataset):
         }
 
         if self.stage == 1:
-            data['word'] = row_data['word'],
+            data['word'] = str(row_data['word']),
 
         if self.transform is not None:
             data = self.transform(data)

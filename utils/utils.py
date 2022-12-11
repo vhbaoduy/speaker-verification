@@ -60,16 +60,19 @@ def combine_waves(src,
 
 
 if __name__ == '__main__':
-    src = 'F:\\Datasets\\speech_commands_v0.01/five/0b77ee66_nohash_0.wav'
-    # des = './temp3.wav'
-    # wave_files = ['five/00b01445_nohash_1.wav', 'five/00b01445_nohash_1.wav']
+    src = './data/audio_mnist'
+    des = './temp.wav'
+    wave_files = ['01/1_01_0.wav', '01/1_01_0.wav']
     # combine_waves(src,
     #               des,
     #               wave_files)
-    import numpy
-    import torch
-    audio, _ = soundfile.read(src)
-    # Full utterance
-    data_1 = torch.FloatTensor(numpy.stack([audio], axis=0))
-    # audio, sr = load_audio(src, 16000)
-    print(data_1.size())
+    # import numpy
+    # import torch
+    # audio, _ = soundfile.read(src)
+    # # Full utterance
+    # data_1 = torch.FloatTensor(numpy.stack([audio], axis=0))
+    # # audio, sr = load_audio(src, 16000)
+    # print(data_1.size())
+    sample, sr = load_audio('temp.wav', 16000)
+    from IPython import embed
+    embed()

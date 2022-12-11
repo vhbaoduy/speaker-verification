@@ -5,14 +5,31 @@ from torch.utils.data import DataLoader
 from datasets import *
 from model_builder import *
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore")
+
+class EarlyStopper:
+    def __init__(self, patience=1, min_delta=0):
+        self.patience = patience
+        self.min_delta = min_delta
+        self.counter = 0
+        self.min_validation_loss = np.inf
+
+    def early_stop(self, validation_loss):
+        if validation_loss < self.min_validation_loss:
+            self.min_validation_loss = validation_loss
+            self.counter = 0
+        elif validation_loss > (self.min_validation_loss + self.min_delta):
+            self.counter += 1
+            if self.counter >= self.patience:
+                return True
+        return False
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Train model')
     parser.add_argument('-root_dir', type=str,
                         default='./data', help='path to root dir dataset')
     parser.add_argument('-dataset_name', type=str, required=True,
-                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2'],
+                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2','audio_mnist'],
                         help='name of dataset')
 
     parser.add_argument('-df_train', type=str, default='./output/train.csv',
@@ -47,7 +64,7 @@ if __name__ == '__main__':
     with open(args.info_data, 'r') as file_in:
         info = json.load(file_in)
 
-    torch.manual_seed(args.seed)
+    # torch.manual_seed(args.seed)
     if args.stage == 1:
         classes = info['speakers']
     else:
@@ -56,7 +73,8 @@ if __name__ == '__main__':
 
     train_transform = build_transform(audio_config=audio_cfgs,
                                       mode='train',
-                                      noise_path=dataset_cfgs)
+                                      noise_path=dataset_cfgs,
+                                      stage=args.stage)
     train_dataset = GeneralDataset(root_dir=dataset_cfgs['root_dir'],
                                    path_to_df=args.df_train,
                                    classes=classes,
@@ -68,10 +86,12 @@ if __name__ == '__main__':
     train_loader = DataLoader(train_dataset,
                               batch_size=param_cfgs['batch_size'],
                               num_workers=param_cfgs['num_workers'],
-                              shuffle=True)
+                              shuffle=True,
+                              drop_last=True)
     if args.stage == 1:
         valid_transform = build_transform(audio_config=audio_cfgs,
-                                          mode='valid')
+                                          mode='eval',
+                                          stage=1)
         valid_dataset = GeneralDataset(root_dir=dataset_cfgs['root_dir'],
                                        path_to_df=args.df_valid,
                                        classes=classes,
@@ -102,17 +122,23 @@ if __name__ == '__main__':
     if args.init_model is not None:
         print("Model %s loaded from previous state!" % args.init_model)
         model.load_parameters(args.init_model)
+        epoch = 36
+    else:
         epoch = 1
 
     EERs = []
-    best_score = -math.inf
+    if args.stage == 1:
+        best_score = -math.inf
+    else:
+        best_score = math.inf
+        best_DCF = math.inf
     if not os.path.exists(folder_cfgs['run_path']):
         os.mkdir(folder_cfgs['run_path'])
 
     score_file = open(folder_cfgs['run_path'] +
                       '/' + folder_cfgs['score_file'], "a+")
     score_file.write("Seed: %d\n" % args.seed)
-    epoch = 1
+    # epoch = 1
     while (1):
         # Training for one epoch
         loss, lr, acc = model.train_network(epoch=epoch, loader=train_loader)
@@ -120,17 +146,19 @@ if __name__ == '__main__':
         # Evaluation every [test_step] epochs
         if epoch % param_cfgs['test_step'] == 0:
             if args.stage == 2:
-
-                EERs.append(model.eval_eer(
-                    eval_list=args.eval_list, eval_path=args.eval_path)[0])
-                if EERs[-1] > best_score:
+                eer, min_dcf = model.eval_eer(
+                    eval_list=args.eval_list, eval_path=args.eval_path)
+                EERs.append(eer)
+                if EERs[-1] < best_score:
                     best_score = EERs[-1]
                     model.save_parameters(
                         folder_cfgs['run_path'] + "/model_best.model")
+                if min_dcf < best_DCF:
+                    best_DCF = min_dcf
                 print(time.strftime("%Y-%m-%d %H:%M:%S"),
-                      "%d epoch, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%" % (epoch, acc, EERs[-1], min(EERs)))
-                score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%\n" % (
-                    epoch, lr, loss, acc, EERs[-1], min(EERs)))
+                      "%d epoch, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f" % (epoch, acc, EERs[-1], min(EERs), min_dcf, best_DCF))
+                score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f\n" % (
+                    epoch, lr, loss, acc, EERs[-1], min(EERs), min_dcf, best_DCF))
                 score_file.flush()
             else:
                 _, val_acc = model.eval_acc(epoch=epoch, loader=valid_loader)

@@ -30,7 +30,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
         'speaker': [],
     }
     if stage == 1:
-        path = os.path.join(out_dir, 'stage1')
+        path = os.path.join(out_dir)
         if not os.path.exists(path):
             os.mkdir(path)
 
@@ -48,6 +48,25 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
             infor['words'] = sorted(list(set(data['word'])))
             infor['speakers'] = sorted(list(set(data['speaker'])))
             infor['n_samples'] = 10
+
+            df = pd.DataFrame(data)
+            df.to_csv(os.path.join(path, 'data.csv'), index=False)
+        
+        elif dataset == 'audio_mnist':
+            speakers = os.listdir(root_dir)
+            for speaker in speakers:
+                if os.path.isdir(os.path.join(root_dir, speaker)):
+                    files = os.listdir(os.path.join(root_dir, speaker))
+                    for file in files:
+                        if file.endswith('.wav'):
+                            att = file[:-4].split('_')
+                            data['word'].append(att[0])
+                            data['speaker'].append(str(att[1]))
+                            data['file'].append(speaker + '/' + file)
+
+            infor['words'] = sorted(list(set(data['word'])))
+            infor['speakers'] = sorted(list(set(data['speaker'])))
+            infor['n_samples'] = 50
 
             df = pd.DataFrame(data)
             df.to_csv(os.path.join(path, 'data.csv'), index=False)
@@ -80,7 +99,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
         val.to_csv(os.path.join(path, 'val.csv'), index=False)
 
     if stage == 2:
-        path = os.path.join(out_dir, 'stage2')
+        path = out_dir
         if not os.path.exists(path):
             os.mkdir(path)
 
@@ -106,7 +125,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
         print('Total train: ', len(df_train))
         print('Saved at', os.path.join(path, 'train.csv'))
         print('Creating valid data...')
-        assert verification_num < infor['n_samples'] - 1
+        assert verification_num < infor['n_samples']
         if verification_num == 0:
             verification_num = infor['n_samples'] - 1
         f = open(os.path.join(path, 'verification.txt'), 'w')
@@ -149,7 +168,7 @@ if __name__ == '__main__':
     parser.add_argument('-out_dir', type=str, default='./output', help='path to output dir')
     parser.add_argument('-split_ratio', type=float, default=0.6, help='split ratio in train and valid')
     parser.add_argument('-dataset_name', type=str, default='arabic',
-                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2'])
+                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2', 'audio_mnist'])
     parser.add_argument('-filtered_df', type=str, default='./data/gg-speech-v0.1/digits/df_filter_5.csv',
                         help='path to filtered df gg-speech-command')
     parser.add_argument('-info_path', type=str, default='./data/gg-speech_v0.1/digits/filter_5.json',

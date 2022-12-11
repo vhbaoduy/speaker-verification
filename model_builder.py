@@ -18,6 +18,8 @@ import pandas as pd
 from metrics import *
 from transforms import build_transform
 import copy
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class ECAPAModel(nn.Module):
@@ -28,6 +30,7 @@ class ECAPAModel(nn.Module):
         param_cfgs = configs['Parameters']
 
         device = param_cfgs['device']
+
         # ECAPA-TDNN
         self.speaker_encoder = ECAPA_TDNN(C=param_cfgs['C']).to(device)
         # Classifier
@@ -36,9 +39,17 @@ class ECAPAModel(nn.Module):
 
         self.optim = torch.optim.Adam(
             self.parameters(), lr=param_cfgs['lr'], weight_decay=2e-5)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim,
-                                                         step_size=param_cfgs['test_step'],
-                                                         gamma=param_cfgs['lr_decay'])
+        if param_cfgs['scheduler'] == 'StepLR':
+            self.scheduler = torch.optim.lr_scheduler.StepLR(self.optim,
+                                                            step_size=param_cfgs['test_step'],
+                                                            gamma=param_cfgs['lr_decay'])
+        else:
+            # self.scheduler = torch.optim.lr_scheduler.CyclicLR(self.optim, 
+            #                                                     base_lr=param_cfgs['base_lr'], 
+            #                                                     max_lr=param_cfgs['max_lr'])
+            self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optim,
+                                                                        patience=param_cfgs['lr_scheduler_patience'],
+                                                                        factor=param_cfgs['lr_scheduler_gamma'])
 
         self.device = device
         self.param_cfgs = param_cfgs
@@ -121,7 +132,7 @@ class ECAPAModel(nn.Module):
                     1].cpu().numpy().ravel()
                 labels = labels.cpu().numpy().ravel()
                 for i in range(len(batch['input'])):
-                    word = batch['word'][i]
+                    word = batch['word'][0][i]
                     if word not in stat:
                         stat[word] = {
                             'true': 0,
@@ -129,6 +140,7 @@ class ECAPAModel(nn.Module):
                         }
                     pred = index2label(classes, preds[i])
                     truth = index2label(classes, labels[i])
+                    # print(batch['path'][i], pred)
                     if pred == truth:
                         stat[word]['true'] += 1
                     else:
@@ -142,7 +154,8 @@ class ECAPAModel(nn.Module):
             res = {
                 'word': [],
                 'true': [],
-                'false': []
+                'false': [],
+                'accuracy': []
             }
             for w in stat:
                 t = stat[w]['true']
@@ -169,10 +182,12 @@ class ECAPAModel(nn.Module):
             setfiles.sort()
             trans_1 = build_transform(audio_config=self.audio_cfgs,
                                       mode='eval',
-                                      num_stack=1)
+                                      num_stack=1,
+                                      stage=2)
             trans_2 = build_transform(audio_config=self.audio_cfgs,
                                       mode='eval',
-                                      num_stack=5)
+                                      num_stack=5,
+                                      stage=2)
             for idx, file in tqdm.tqdm(enumerate(setfiles), total=len(setfiles)):
                 audio, sr = utils.load_audio(os.path.join(
                     eval_path, file), self.audio_cfgs['sample_rate'])
@@ -190,6 +205,8 @@ class ECAPAModel(nn.Module):
                 # print("#"*10, data)
                 # Splited utterance matrix
                 data_2 = trans_2(data_2)
+                # from IPython import embed
+                # embed()
                 data_1 = data_1['input'].to(self.device)
                 data_2 = data_2['input'].to(self.device)
                 # data_2 = data_2.unsqueeze(1)

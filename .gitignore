@@ -129,4 +129,9 @@ dmypy.json
 .pyre/
 
 backup/
-.idea/
+.idea
+data
+process_data
+checkpoints*
+data-stage2
+filter

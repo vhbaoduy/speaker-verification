@@ -1,9 +1,8 @@
-dataset: 'arabic' # ['arabic', 'google-speech-command']
-root_dir: 'F:/Datasets/keyword-spotting/abdulkaderghandoura-arabic-speech-commands-dataset-72f3438/dataset'
-out_dir: './combine_data'
-df_path: './output/stage1/data.csv'
-info_path: './output/stage1/info.json'
-n_samples: 10
+dataset: 'audio_mnist' # ['arabic', 'google-speech-command']
+root_dir: './data/audio_mnist'
+out_dir: './data-stage2/audio_mnist/4-4-4'
+df_path: './process_data/audio_mnist/0.5/data.csv'
+info_path: './process_data/audio_mnist/0.5/info.json'
+n_samples: 50
 ratio_split: 0.5  # the number of speakers
-words: ['previous', 'previous']
-mode: 'duplicate'
+words: ['4','4','4']

@@ -20,7 +20,7 @@ def generate_file(samples, words, n_samples):
         for i, sample in enumerate(samples[words[0]]):
             combine_list = [sample]
             idx = sample[:-4].split('_')[-1]
-            name = (words[0] + '_%s_' % idx) + '.wav' % i
+            name = (words[0] + '_%s_' % idx) + '.wav'
 
             files.append((combine_list, name))
             names.append(name)
@@ -69,10 +69,10 @@ def create_data(config):
     # Read dataframe and infor
     df = pd.read_csv(config['df_path'])
     df['speaker'] = df['speaker'].map(str)
+    df['word'] = df['word'].map(str)
     info = utils.read_json(config['info_path'])
     n = info['n_samples']
     assert config['n_samples'] <= n ** len(config['words'])
-
     # np.random.seed(seed)
     # index_split = int(len(info['speakers']) * config['ratio_split'])
     # np.random.shuffle(info['speakers'])
@@ -84,12 +84,19 @@ def create_data(config):
 
     for sp in info['speakers']:
         data = {}
+        if config['dataset'] == 'audio_mnist':
+            sp_str = sp
+            sp = str(int(sp))
         for w in config['words']:
+            
+            #     w = int(w)
             filter = df[(df['speaker'] == sp) & (df['word'] == w)]
             assert len(filter) > 0
             data[w] = filter['file'].tolist()
-
-        info_combine[sp] = data
+        if config['dataset'] == 'audio_mnist':
+            info_combine[sp_str] = data
+        else:
+            info_combine[sp] = data
 
     pbar = tqdm(info['speakers'])
     for i, sp in enumerate(pbar):

@@ -1,31 +1,36 @@
 Dataset:
-  root_dir: 'F:\\Datasets\\keyword-spotting\\abdulkaderghandoura-arabic-speech-commands-dataset-72f3438\\dataset'
-  noise_path: 'F:\\Datasets\\keyword-spotting\\abdulkaderghandoura-arabic-speech-commands-dataset-72f3438\\background_noise'
-  rir_path: './RIRS_NOISES/simulated_rirs'
-  musan_path: './musan'
+  root_dir: 'data-stage2/audio_mnist/4-4-4'
+  noise_path: ''
+  rir_path: './data/rirs_data/RIRS_NOISES/simulated_rirs'
+  musan_path: './data/musan_data/musan'
 
 
 AudioProcessing:
   # Init
   sample_rate: 16000
-  duration: 2 # second
+  duration: 3 # second
   add_sample: 240 #
   # Sample = sr * duration + add_sample
 
 Parameters:
-  lr: 0.002
-  lr_decay: 0.99
+  lr: &lr 0.0001
+  lr_decay: 0.97
   num_workers: 0
-  max_epoch: 50
-  batch_size: 128
+  max_epoch: 35
+  batch_size: 64
+  scheduler: 'StepLR' # CyclicLR, StepLR, ReduceLROnPlateau
+  base_lr:  0.00000001
+  max_lr: *lr 
+  lr_scheduler_patience: 1
+  lr_scheduler_gamma: 0.05
 
   # For TDNN
   C: 1024
   m: 0.2
   s: 30
   test_step: 1
-  device: 'cpu'
+  device: 'cuda:2'
 
 RunningFolder:
-  run_path: './checkpoints'
-  score_file: 'score.txt'
+  run_path: 'checkpoints-stage2/audio_mnist/4-4-4/exp1'
+  score_file: 'score-stage2.txt'

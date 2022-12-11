@@ -7,9 +7,9 @@ import argparse
 WORDS = {
     'mix': ["five", "four", "nine", "one", "seven", "six",
             "three", "two", "zero", "eight", 'yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'],
-    'digits': ["five", "four", "nine", "one", "seven", "six",
+    'digit': ["five", "four", "nine", "one", "seven", "six",
                "three", "two", "zero", "eight"],
-    'IOT': ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'],
+    'iot': ['yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'],
 }
 
 
@@ -90,7 +90,7 @@ if __name__ == '__main__':
     parser.add_argument('-n_samples', type=int,
                         help='the number of samples per speakers for each words', default=5)
     parser.add_argument('-type', type=str,
-                        choice=['mix', 'digit', 'iot'], default='mix')
+                        choices=['mix', 'digit', 'iot'], default='mix')
     parser.add_argument('-seed', type=int, default=2022)
     args = parser.parse_args()
 

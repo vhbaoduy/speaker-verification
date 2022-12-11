@@ -20,8 +20,10 @@ class FixAudioLength(object):
         max_length = int(self.time * sample_rate) + self.add_sample
         if len(samples) <= max_length:
             shortage = max_length - len(samples)
-            samples = np.pad(samples, (0, shortage), "wrap")
-
+            samples = np.pad(samples, (0, shortage), "constant")
+        start_frame = np.int64(
+                random.random() * (samples.shape[0] - max_length))
+        samples = samples[start_frame:start_frame + max_length]
         if self.num != 1:
             feats = []
             start_frame = np.linspace(0, len(samples) - max_length, num=self.num)
@@ -106,18 +108,22 @@ class ShiftAudio(object):
 class ToTensor(object):
     """Converts into a tensor."""
 
-    def __init__(self, np_name, tensor_name, normalize=None,mode='train'):
+    def __init__(self, np_name, tensor_name, normalize=None,mode='train',stage=1):
         self.np_name = np_name
         self.tensor_name = tensor_name
         self.normalize = normalize
-        self.mode = 'train'
+        self.mode = mode
+        self.stage = stage
     def __call__(self, data):
         d = data[self.np_name]
         # Check stack when eval
-        if self.mode == 'train' and d.shape[0] == 1:
+        if self.stage == 1:
             tensor = torch.FloatTensor(d[0])
         else:
-            tensor = torch.FloatTensor(d)
+            if self.mode == 'train':
+                tensor = torch.FloatTensor(d[0])
+            else:
+                tensor = torch.FloatTensor(d)
         # tensor = torch.FloatTensor(data[self.np_name])
         if self.normalize is not None:
             mean, std = self.normalize
@@ -162,13 +168,13 @@ if __name__ == '__main__':
 
     noise_dataset = AugmentationDataset(rir_path='F:\\Datasets\\keyword-spotting\\RIRS_NOISES\\simulated_rirs',
                                         musan_path='F:/Datasets/keyword-spotting/musan/musan')
-    trans = Compose([FixAudioLength(time=1, add_sample=240, num=1),
-                     Augmentation(bg_dataset=noise_dataset),
-                     ToTensor('samples', 'input')
+    trans = Compose([FixAudioLength(time=2, add_sample=240, num=1),
+                    #  Augmentation(bg_dataset=noise_dataset),
+                    #  ToTensor('samples', 'input')
                      ],
                     )
     data = {}
-    data['samples'] = utils.load_audio('F:\\Datasets\\speech_commands_v0.01/five/0b77ee66_nohash_1.wav', 16000)[0]
+    data['samples'] = utils.load_audio('../utils/temp.wav', 16000)[0]
     # print(data['samples'].shape)
     data['sample_rate'] = 16000
     data = trans(data)
