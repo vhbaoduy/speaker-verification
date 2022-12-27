@@ -28,6 +28,7 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
         'file': [],
         'word': [],
         'speaker': [],
+        'gender': []
     }
     if stage == 1:
         path = os.path.join(out_dir)
@@ -53,8 +54,10 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
             df.to_csv(os.path.join(path, 'data.csv'), index=False)
         
         elif dataset == 'audio_mnist':
-            speakers = os.listdir(root_dir)
-            for speaker in speakers:
+            meta_data = json.load(open(os.path.join(root_dir, 'audioMNIST_meta.txt')))
+            female_speakers = []
+            male_speakers = []
+            for speaker in list(meta_data.keys()):
                 if os.path.isdir(os.path.join(root_dir, speaker)):
                     files = os.listdir(os.path.join(root_dir, speaker))
                     for file in files:
@@ -63,15 +66,25 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
                             data['word'].append(att[0])
                             data['speaker'].append(str(att[1]))
                             data['file'].append(speaker + '/' + file)
+                            data['gender'].append(meta_data[speaker]['gender'])
+                
+
+                if meta_data[speaker]['gender'] == 'female':
+                    female_speakers.append(speaker)
+                else:
+                    male_speakers.append(speaker)
+
 
             infor['words'] = sorted(list(set(data['word'])))
             infor['speakers'] = sorted(list(set(data['speaker'])))
             infor['n_samples'] = 50
+            infor['female_speakers'] = female_speakers
+            infor['male_speakers'] = male_speakers
 
             df = pd.DataFrame(data)
             df.to_csv(os.path.join(path, 'data.csv'), index=False)
 
-        elif dataset.startswith('gg-speech'):
+        elif dataset.startswith('google_speech'):
             df = pd.read_csv(df_path)
             info = utils.read_json(info_path)
 
@@ -81,22 +94,30 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
 
         with open(os.path.join(path, 'info.json'), 'w') as fout:
             json.dump(infor, fout)
+                
         train = pd.DataFrame()
         val = pd.DataFrame()
+        test = pd.DataFrame()
+
         for word in infor['words']:
             for speaker in infor['speakers']:
                 temp = df[(df['word'] == word) & (df['speaker'] == speaker)]
                 total = len(temp)
                 # print(temp.values)
                 np.random.shuffle(temp.values)
-                idx_split = int(total * split_ratio)
-                train = pd.concat([train, temp[:idx_split]], ignore_index=True)
-                val = pd.concat([val, temp[idx_split:]], ignore_index=True)
 
-        print("Train: %d, Valid: %d" % (len(train), len(val)))
+                idx_train = int(total * split_ratio['train'])
+                idx_val = int(total * split_ratio['val'])
+                train = pd.concat([train, temp[:idx_train]], ignore_index=True)
+                val = pd.concat([val, temp[idx_train:idx_train+idx_val]], ignore_index=True)
+                test = pd.concat([test, temp[idx_train+idx_val:]], ignore_index=True)
+
+        print("Train: %d, Valid: %d, Test: %d" % (len(train), len(val), len(test)))
         print(train.dtypes)
         train.to_csv(os.path.join(path, 'train.csv'), index=False)
         val.to_csv(os.path.join(path, 'val.csv'), index=False)
+        test.to_csv(os.path.join(path, 'test.csv'), index=False)
+
 
     if stage == 2:
         path = out_dir
@@ -164,27 +185,32 @@ def prepare_data(root_dir, out_dir, split_ratio, dataset='arabic', df_path=None,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Prepare data file')
-    parser.add_argument('-root_dir', type=str, default='./dataset', help='path to root dir dataset')
-    parser.add_argument('-out_dir', type=str, default='./output', help='path to output dir')
-    parser.add_argument('-split_ratio', type=float, default=0.6, help='split ratio in train and valid')
-    parser.add_argument('-dataset_name', type=str, default='arabic',
-                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2', 'audio_mnist'])
-    parser.add_argument('-filtered_df', type=str, default='./data/gg-speech-v0.1/digits/df_filter_5.csv',
-                        help='path to filtered df gg-speech-command')
-    parser.add_argument('-info_path', type=str, default='./data/gg-speech_v0.1/digits/filter_5.json',
-                        help='path to info.json gg-speech-command')
-    # parser.add_argument('-noise_path', type=str, default ='./noise_data')
-    parser.add_argument('-stage', type=int, choices=[1, 2], default=2)
-    parser.add_argument('-verification_num', type=int, default=0)
-    parser.add_argument('-seed', type=int, default=2022)
+    parser.add_argument('-config_file', type=str,default='prepare_data.yaml',help='config file for preparing data')
+    # parser.add_argument('-root_dir', type=str, default='./dataset', help='path to root dir dataset')
+    # parser.add_argument('-out_dir', type=str, default='./output', help='path to output dir')
+    # parser.add_argument('-split_ratio', type=float, default=0.6, help='split ratio in train and valid')
+    # parser.add_argument('-dataset_name', type=str, default='arabic',
+    #                     choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2', 'audio_mnist'])
+    # parser.add_argument('-filtered_df', type=str, default='./data/gg-speech-v0.1/digits/df_filter_5.csv',
+    #                     help='path to filtered df gg-speech-command')
+    # parser.add_argument('-info_path', type=str, default='./data/gg-speech_v0.1/digits/filter_5.json',
+    #                     help='path to info.json gg-speech-command')
+    # # parser.add_argument('-noise_path', type=str, default ='./noise_data')
+    # parser.add_argument('-stage', type=int, choices=[1, 2], default=2)
+    # parser.add_argument('-verification_num', type=int, default=0)
+    # parser.add_argument('-seed', type=int, default=2022)
+    
     args = parser.parse_args()
+    config_path = os.path.join('./configs', args.config_file)
+    config = utils.load_config_file(config_path)
 
-    prepare_data(root_dir=args.root_dir,
-                 out_dir=args.out_dir,
-                 split_ratio=args.split_ratio,
-                 dataset=args.dataset_name,
-                 df_path=args.filtered_df,
-                 info_path=args.info_path,
-                 stage=args.stage,
-                 verification_num=args.verification_num,
-                 seed=args.seed)
+
+    prepare_data(root_dir=config['root_dir'],
+                 out_dir=config['out_dir'],
+                 split_ratio=config['split_ratio'],
+                 dataset=config['dataset_name'],
+                 df_path=config['filtered_df'],
+                 info_path=config['info_path'],
+                 stage=config['stage'],
+                 verification_num=config['verification_num'],
+                 seed=config['seed'])

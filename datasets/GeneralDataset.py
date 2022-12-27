@@ -18,6 +18,7 @@ class GeneralDataset(Dataset):
                  sample_rate,
                  dataset_name='arabic',
                  stage=1,
+                 gender='mix',
                  transform=None):
         """
         :param root_dir: Path to root dataset path_to/dataset/
@@ -28,8 +29,10 @@ class GeneralDataset(Dataset):
         super(GeneralDataset, self).__init__()
         self.root_dir = root_dir
         self.path_to_df = path_to_df
-        self.df = pd.read_csv(path_to_df)
-
+        df = pd.read_csv(path_to_df)
+        if stage == 1 and gender != 'mix':
+            df = df[df['gender'] == gender]
+        self.df = df
         self.classes = classes
         self.n_class = len(classes)
         self.sample_rate = sample_rate

@@ -29,7 +29,7 @@ if __name__ == '__main__':
     parser.add_argument('-root_dir', type=str,
                         default='./data', help='path to root dir dataset')
     parser.add_argument('-dataset_name', type=str, required=True,
-                        choices=['arabic', 'gg-speech-v0.1', 'gg-speech-v0.2','audio_mnist'],
+                        choices=['arabic', 'google_speech_v0.01', 'google_speech_v0.02','audio_mnist'],
                         help='name of dataset')
 
     parser.add_argument('-df_train', type=str, default='./output/train.csv',
@@ -51,6 +51,7 @@ if __name__ == '__main__':
         '-stage', type=int, choices=[1, 2], default=1, help='use {1:accuracy,2:eer} to evaluate')
     parser.add_argument('-eval', type=bool, default=False)
     parser.add_argument('-path_to_result', type=str)
+    parser.add_argument('-gender', type=str, default='mix', choices=['mix', 'female', 'male'])
     # Parse args
     args = parser.parse_args()
 
@@ -66,7 +67,12 @@ if __name__ == '__main__':
 
     # torch.manual_seed(args.seed)
     if args.stage == 1:
-        classes = info['speakers']
+        if args.gender == 'mix':
+            classes = info['speakers']
+        elif args.gender == 'female':
+            classes = info['female_speakers']
+        else:
+            classes = info['male_speakers']
     else:
         classes = info['speaker_train']
     n_class = len(classes)
@@ -81,7 +87,8 @@ if __name__ == '__main__':
                                    sample_rate=audio_cfgs['sample_rate'],
                                    dataset_name=args.dataset_name,
                                    stage=args.stage,
-                                   transform=train_transform)
+                                   transform=train_transform,
+                                   gender=args.gender)
 
     train_loader = DataLoader(train_dataset,
                               batch_size=param_cfgs['batch_size'],
@@ -98,7 +105,8 @@ if __name__ == '__main__':
                                        sample_rate=audio_cfgs['sample_rate'],
                                        dataset_name=args.dataset_name,
                                        stage=1,
-                                       transform=valid_transform)
+                                       transform=valid_transform,
+                                       gender=args.gender)
         valid_loader = DataLoader(valid_dataset,
                                   batch_size=param_cfgs['batch_size'],
                                   num_workers=param_cfgs['num_workers'],
