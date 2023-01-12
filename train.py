@@ -41,11 +41,9 @@ if __name__ == '__main__':
     parser.add_argument('-config_file', type=str,
                         default='configs.yaml', help='name of config file')
     parser.add_argument('-init_model', type=str,
+                        help='path to init model')
+    parser.add_argument('-pretrained_model', type=str,
                         help='path to pretrained model')
-    parser.add_argument('-eval_list', type=str, default="/data08/VoxCeleb1/veri_test2.txt",
-                        help='The path of the evaluation list, veri_test2.txt comes from https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt')
-    parser.add_argument('-eval_path', type=str, default="/data08/VoxCeleb1/test/wav",
-                        help='The path of the evaluation data, eg:"/data08/VoxCeleb1/test/wav" in my case')
     parser.add_argument('-seed', type=int, default=2022, help='seed of train')
     parser.add_argument(
         '-stage', type=int, choices=[1, 2], default=1, help='use {1:accuracy,2:eer} to evaluate')
@@ -62,6 +60,12 @@ if __name__ == '__main__':
     param_cfgs = configs['Parameters']
     folder_cfgs = configs['RunningFolder']
 
+    eval_info = {
+        'female': [configs['Pairs']['Female']['eval_list'], args.root_dir],
+        'male': [configs['Pairs']['Male']['eval_list'], args.root_dir],
+
+    }
+
     with open(args.info_data, 'r') as file_in:
         info = json.load(file_in)
 
@@ -74,7 +78,7 @@ if __name__ == '__main__':
         else:
             classes = info['male_speakers']
     else:
-        classes = info['speaker_train']
+        classes = info['background']['female'] + info['background']['male']
     n_class = len(classes)
 
     train_transform = build_transform(audio_config=audio_cfgs,
@@ -114,23 +118,27 @@ if __name__ == '__main__':
 
     model = ECAPAModel(configs=configs,
                        n_class=n_class)
-
+    print('The number of classes', n_class)
     if args.eval:
         print("Model %s loaded from previous state!" % args.init_model)
         model.load_parameters(args.init_model)
+        score_file = open(folder_cfgs['run_path'] +
+                      '/' + folder_cfgs['threshold_file'], "a+")
         if args.stage == 2:
-            EER, minDCF = model.eval_network(
-                eval_list=args.eval_list, eval_path=args.eval_path)
-            print("EER %2.2f%%, minDCF %.4f%%" % (EER, minDCF))
+            for gender in eval_info:
+                EER, minDCF,thresh = model.eval_eer(
+                    eval_list=eval_info[gender][0], eval_path=eval_info[gender][1])
+                print("Gender %s, EER %2.2f%%, minDCF %.4f%%, threshold, %.4f%" % (gender, EER, minDCF,thresh))
+                score_file.write("Gender %s, EER %2.2f%%, minDCF %.4f%%, threshold, %.4f%" % (gender, EER, minDCF,thresh))
+                score_file.flush()
         else:
             res = model.eval_stage_1(
                 valid_loader, classes=info['speakers'], path_to_result=args.path_to_result)
         quit()
     # print(args.init_model)
-    if args.init_model is not None:
-        print("Model %s loaded from previous state!" % args.init_model)
-        model.load_parameters(args.init_model)
-        epoch = 36
+    if args.pretrained_model is not None:
+        print("Model %s loaded from previous state!" % args.pretrained_model)
+        model.load_parameters(args.pretrained_model)
     else:
         epoch = 1
 
@@ -138,7 +146,9 @@ if __name__ == '__main__':
     if args.stage == 1:
         best_score = -math.inf
     else:
-        best_score = math.inf
+        # best_loss = math.inf
+        best_acc =  -math.inf
+        best_eer = math.inf
         best_DCF = math.inf
     if not os.path.exists(folder_cfgs['run_path']):
         os.mkdir(folder_cfgs['run_path'])
@@ -146,6 +156,8 @@ if __name__ == '__main__':
     score_file = open(folder_cfgs['run_path'] +
                       '/' + folder_cfgs['score_file'], "a+")
     score_file.write("Seed: %d\n" % args.seed)
+    with open(folder_cfgs['run_path'] + '/config.yaml', 'w') as outfile:
+        yaml.dump(configs, outfile, default_flow_style=False)
     # epoch = 1
     while (1):
         # Training for one epoch
@@ -154,20 +166,31 @@ if __name__ == '__main__':
         # Evaluation every [test_step] epochs
         if epoch % param_cfgs['test_step'] == 0:
             if args.stage == 2:
-                eer, min_dcf = model.eval_eer(
-                    eval_list=args.eval_list, eval_path=args.eval_path)
-                EERs.append(eer)
-                if EERs[-1] < best_score:
-                    best_score = EERs[-1]
+                if acc >= best_acc:
+                    best_acc = acc
                     model.save_parameters(
-                        folder_cfgs['run_path'] + "/model_best.model")
-                if min_dcf < best_DCF:
-                    best_DCF = min_dcf
+                        folder_cfgs['run_path'] + "/model_best_acc.model")
+
+                # if EERs[-1] < best_score:
+                #     best_eer = EERs[-1]
+                #     model.save_parameters(
+                #         folder_cfgs['run_path'] + "/model_best_eer.model")
+                # if min_dcf < best_DCF:
+                #     best_DCF = min_dcf
+                #     model.save_parameters(
+                #         folder_cfgs['run_path'] + "/model_best_dcf.model")
+
                 print(time.strftime("%Y-%m-%d %H:%M:%S"),
-                      "%d epoch, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f" % (epoch, acc, EERs[-1], min(EERs), min_dcf, best_DCF))
-                score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f\n" % (
-                    epoch, lr, loss, acc, EERs[-1], min(EERs), min_dcf, best_DCF))
+                      "%d epoch, ACC %2.2f%%, LOSS %f" % (epoch, acc, loss))
+                score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%\n" % (
+                    epoch, lr, loss, acc))
                 score_file.flush()
+
+                # print(time.strftime("%Y-%m-%d %H:%M:%S"),
+                #       "%d epoch, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f" % (epoch, acc, EERs[-1], min(EERs), min_dcf, best_DCF))
+                # score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f, threshold %.4f% \n" % (
+                #     epoch, lr, loss, acc, EERs[-1], min(EERs), min_dcf, best_DCF,thresh))
+                # score_file.flush()
             else:
                 _, val_acc = model.eval_acc(epoch=epoch, loader=valid_loader)
                 if val_acc > best_score:

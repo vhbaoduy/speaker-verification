@@ -133,18 +133,21 @@ class ECAPAModel(nn.Module):
                 labels = labels.cpu().numpy().ravel()
                 for i in range(len(batch['input'])):
                     word = batch['word'][0][i]
-                    if word not in stat:
-                        stat[word] = {
+                    pred = index2label(classes, preds[i])
+                    truth = index2label(classes, labels[i])
+                    
+                    if truth not in stat:
+                        stat[truth] = {}
+                    if word not in stat[truth]:
+                        stat[truth][word] = {
                             'true': 0,
                             'false': 0
                         }
-                    pred = index2label(classes, preds[i])
-                    truth = index2label(classes, labels[i])
                     # print(batch['path'][i], pred)
                     if pred == truth:
-                        stat[word]['true'] += 1
+                        stat[truth][word]['true'] += 1
                     else:
-                        stat[word]['false'] += 1
+                        stat[truth][word]['false'] += 1
 
                 sys.stderr.write(time.strftime("%m-%d %H:%M:%S") +
                                  " Validating: %.2f%%, " % (100 * (num / loader.__len__())) +
@@ -152,18 +155,21 @@ class ECAPAModel(nn.Module):
                 sys.stderr.flush()
             sys.stdout.write("\n")
             res = {
+                'speaker': [],
                 'word': [],
                 'true': [],
                 'false': [],
                 'accuracy': []
             }
-            for w in stat:
-                t = stat[w]['true']
-                f = stat[w]['false']
-                res['word'].append(w)
-                res['true'].append(t)
-                res['false'].append(f)
-                res['accuracy'].append(float(t / (t+f)))
+            for spkr in stat:
+                for w in stat[spkr]:
+                    t = stat[spkr][w]['true']
+                    f = stat[spkr][w]['false']
+                    res['speaker'].append(spkr)
+                    res['word'].append(w)
+                    res['true'].append(t)
+                    res['false'].append(f)
+                    res['accuracy'].append(float(t / (t+f)))
 
             res = pd.DataFrame(res)
             res.to_csv(path_to_result, index=False)
@@ -223,7 +229,7 @@ class ECAPAModel(nn.Module):
                 embeddings[file] = [embedding_1, embedding_2]
             scores, labels = [], []
 
-            for line in lines:
+            for line in tqdm.tqdm(lines):
                 embedding_11, embedding_12 = embeddings[line.split()[1]]
                 embedding_21, embedding_22 = embeddings[line.split()[2]]
                 # Compute the scores
@@ -239,8 +245,8 @@ class ECAPAModel(nn.Module):
             # Coumpute EER and minDCF
             EER = tuneThresholdfromScore(scores, labels, [1, 0.1])[1]
             fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
-            minDCF, _ = ComputeMinDcf(fnrs, fprs, thresholds, 0.05, 1, 1)
-            return EER, minDCF
+            minDCF, thresh = ComputeMinDcf(fnrs, fprs, thresholds, 0.05, 1, 1)
+            return EER, minDCF, thresh
 
     def save_parameters(self, path):
         torch.save(self.state_dict(), path)

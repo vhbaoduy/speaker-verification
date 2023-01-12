@@ -1,9 +1,14 @@
 Dataset:
-  root_dir: 'data/audio_mnist/'
+  root_dir: './data'
   noise_path: ''
-  rir_path: './data/RIRS_NOISES/simulated_rirs'
-  musan_path: './data/musan_data/musan'
+  rir_path: '../dataset/rir_data/RIRS_NOISES/simulated_rirs'
+  musan_path: '../dataset/musan_data/musan'
 
+Pairs:
+  Female:
+    eval_list: './data/loop1/3/female_development.txt'
+  Male:
+    eval_list: './data/loop1/3/male_development.txt'
 
 AudioProcessing:
   # Init
@@ -16,8 +21,8 @@ Parameters:
   lr: &lr 0.0001
   lr_decay: 0.97
   num_workers: 0
-  max_epoch: 35
-  batch_size: 64
+  max_epoch: 70
+  batch_size: 128
   scheduler: 'StepLR' # CyclicLR, StepLR, ReduceLROnPlateau
   base_lr:  0.00000001
   max_lr: *lr 
@@ -29,8 +34,11 @@ Parameters:
   m: 0.2
   s: 30
   test_step: 1
-  device: 'cuda:0'
+  device: 'cuda:2'
 
 RunningFolder:
-  run_path: 'checkpoints_stage1/audio_mnist/stage1/female2/exp3'
+  run_path: 'checkpoint_stage2/loop1/3'
   score_file: 'score-stage.txt'
+  threshold_file: 'threshold-tuning.txt'
+
+

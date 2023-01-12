@@ -132,6 +132,8 @@ backup/
 .idea
 data
 process_data
-checkpoints*
+checkpoint*
 data-stage2
 filter
+stage*
+*.model
