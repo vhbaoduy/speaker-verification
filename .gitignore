@@ -135,5 +135,5 @@ process_data
 checkpoint*
 data-stage2
 filter
-stage*
+stage1
 *.model
