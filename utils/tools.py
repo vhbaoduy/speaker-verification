@@ -7,6 +7,7 @@ import os, numpy, torch
 from sklearn import metrics
 from operator import itemgetter
 import torch.nn.functional as F
+import numpy as np
 
 
 def init_args(args):
@@ -30,7 +31,7 @@ def tuneThresholdfromScore(scores, labels, target_fa, target_fr=None):
     idxE = numpy.nanargmin(numpy.absolute((fnr - fpr)))
     eer = max(fpr[idxE], fnr[idxE]) * 100
 
-    return tunedThreshold, eer, fpr, fnr
+    return tunedThreshold, eer, fpr, fnr,thresholds[idxE]
 
 
 # Creates a list of false-negative rates, a list of false-positive rates
@@ -89,6 +90,32 @@ def ComputeMinDcf(fnrs, fprs, thresholds, p_target, c_miss, c_fa):
     min_dcf = min_c_det / c_def
     return min_dcf, min_c_det_threshold
 
+
+def compute_eer(scores, labels, threshold):
+    pos_scores = np.array([scores[i] for i in range(len(labels)) if labels[i] == 1])
+    neg_scores = np.array([scores[i] for i in range(len(labels)) if labels[i] == 0])
+
+    FRR = sum((pos_scores <= threshold).astype(int)) / pos_scores.shape[0]
+
+    FAR = sum((neg_scores > threshold).astype(int)) / neg_scores.shape[0]
+
+    EER = (FRR + FAR)*100 / 2
+    return EER
+
+
+def compute_minDCF(scores, labels, threshold,p_target=0.05, c_miss=1, c_fa=1):
+    pos_scores = np.array([scores[i] for i in range(len(labels)) if labels[i] == 1])
+    neg_scores = np.array([scores[i] for i in range(len(labels)) if labels[i] == 0])
+
+    fnr = sum((pos_scores <= threshold).astype(int)) / pos_scores.shape[0]
+
+    fpr = sum((neg_scores > threshold).astype(int)) / neg_scores.shape[0]
+
+    c_det = c_miss * fnr * p_target + c_fa * fpr * (1 - p_target)
+
+    c_def = min(c_miss * p_target, c_fa * (1 - p_target))
+    mindcf = c_det / c_def
+    return  mindcf
 
 def accuracy(output, target, topk=(1,)):
     maxk = max(topk)

@@ -1,6 +1,6 @@
 from .transform_wav import *
 from torchvision.transforms import Compose
-from datasets import AugmentationDataset
+from datasets import AugmentationDataset, BackgroundNoiseDataset
 
 
 def build_transform(audio_config,
@@ -21,4 +21,10 @@ def build_transform(audio_config,
 
             augment = Augmentation(bg_dataset=bg_dataset)
         return Compose([transform, augment, ToTensor('samples', 'input',mode=mode,stage=stage)])
-    return Compose([transform, ToTensor('samples', 'input', mode=mode,stage=stage)])
+    else:
+        bg_dataset = BackgroundNoiseDataset(paths=noise_path['noise_test_paths'],
+                                            sample_rate=audio_config['sample_rate'],
+                                            sample_length=audio_config['duration'],
+                                            add_sample=add_sample)
+        add_noise = AddNoiseForTestPhase(bg_dataset=bg_dataset)
+        return Compose([transform, add_noise, ToTensor('samples', 'input', mode=mode,stage=stage)])

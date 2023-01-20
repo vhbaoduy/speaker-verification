@@ -70,22 +70,24 @@ class GeneralDataset(Dataset):
 
 
 class BackgroundNoiseDataset(Dataset):
-    def __init__(self, path, transform, sample_rate, sample_length=1):
-        noise_files = [file for file in os.listdir(
-            path) if file.endswith('.wav')]
+    def __init__(self, paths,sample_rate, sample_length=1,add_sample=240):
+
+        noise_files = []
+        for path in paths:
+            noise_files.extend([os.path.join(path,file) for file in os.listdir(path) if file.endswith('.wav')])
+
+
         samples = []
         for f in noise_files:
-            noise_path = os.path.join(path, f)
-            sample, sample_rate = utils.load_audio(noise_path, sample_rate)
+            sample, sample_rate = utils.load_audio(f, sample_rate)
             samples.append(sample)
 
         samples = np.hstack(samples)
-        c = int(sample_rate * sample_length)
+        c = int(sample_rate * sample_length) + add_sample
         r = len(samples) // c
         self.samples = samples[:r * c].reshape(-1, c)
         self.sample_rate = sample_rate
-        self.transform = transform
-        self.path = path
+        self.paths = paths
 
     def __len__(self):
         return len(self.samples)
@@ -95,11 +97,8 @@ class BackgroundNoiseDataset(Dataset):
             'samples': self.samples[index],
             'sample_rate': self.sample_rate,
             'target': 1,
-            'path': self.path
+            'paths': self.paths
         }
-
-        if self.transform is not None:
-            data = self.transform(data)
         return data
 
 

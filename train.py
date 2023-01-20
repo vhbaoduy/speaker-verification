@@ -48,6 +48,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '-stage', type=int, choices=[1, 2], default=1, help='use {1:accuracy,2:eer} to evaluate')
     parser.add_argument('-eval', type=bool, default=False)
+    parser.add_argument('-tune_threshold', type=bool, default=False)
     parser.add_argument('-path_to_result', type=str)
     parser.add_argument('-gender', type=str, default='mix', choices=['mix', 'female', 'male'])
     # Parse args
@@ -61,8 +62,8 @@ if __name__ == '__main__':
     folder_cfgs = configs['RunningFolder']
 
     eval_info = {
-        'female': [configs['Pairs']['Female']['eval_list'], args.root_dir],
-        'male': [configs['Pairs']['Male']['eval_list'], args.root_dir],
+        'female': configs['Pairs']['Female'],
+        'male': configs['Pairs']['Male'],
 
     }
 
@@ -102,6 +103,7 @@ if __name__ == '__main__':
     if args.stage == 1:
         valid_transform = build_transform(audio_config=audio_cfgs,
                                           mode='eval',
+                                          noise_path=dataset_cfgs,
                                           stage=1)
         valid_dataset = GeneralDataset(root_dir=dataset_cfgs['root_dir'],
                                        path_to_df=args.df_valid,
@@ -122,15 +124,34 @@ if __name__ == '__main__':
     if args.eval:
         print("Model %s loaded from previous state!" % args.init_model)
         model.load_parameters(args.init_model)
-        score_file = open(folder_cfgs['run_path'] +
-                      '/' + folder_cfgs['threshold_file'], "a+")
         if args.stage == 2:
+            score_file = open(folder_cfgs['run_path'] +
+                      '/' + folder_cfgs['threshold_file'], "a+")
+            print('Tune threshold', args.tune_threshold)
+            tuned_threshold = {'male':[], 'female':[]}
+            if args.tune_threshold:
+                threshold_store = {}
+            else:
+                tuned_threshold = json.load(open(configs['Pairs']['threshold_path']))
             for gender in eval_info:
-                EER, minDCF,thresh = model.eval_eer(
-                    eval_list=eval_info[gender][0], eval_path=eval_info[gender][1])
-                print("Gender %s, EER %2.2f%%, minDCF %.4f%%, threshold, %.4f%" % (gender, EER, minDCF,thresh))
-                score_file.write("Gender %s, EER %2.2f%%, minDCF %.4f%%, threshold, %.4f%" % (gender, EER, minDCF,thresh))
+                if not args.tune_threshold:
+                    print('Threshold', tuned_threshold[gender])
+                    eval_list = eval_info[gender]['eval_list']
+                else:
+                    eval_list = eval_info[gender]['dev_list']
+
+                EER, minDCF,thresholds = model.eval_eer(
+                    eval_list=eval_list, eval_path=dataset_cfgs['root_dir'],
+                    tuning=args.tune_threshold,
+                    thresholds=tuned_threshold[gender])
+                print("Gender %s, EER %2.2f%%, minDCF %.4f, threshold %s" % (gender, EER, minDCF,thresholds))
+                score_file.write("Gender %s, EER %2.2f%%, minDCF %.4f, threshold %s\n" % (gender, EER, minDCF,thresholds))
                 score_file.flush()
+                
+                if args.tune_threshold:
+                    threshold_store[gender] = thresholds
+            if args.tune_threshold:
+                json.dump(threshold_store, open(folder_cfgs['run_path'] + '/thresholds.json','w'))
         else:
             res = model.eval_stage_1(
                 valid_loader, classes=info['speakers'], path_to_result=args.path_to_result)
@@ -158,7 +179,7 @@ if __name__ == '__main__':
     score_file.write("Seed: %d\n" % args.seed)
     with open(folder_cfgs['run_path'] + '/config.yaml', 'w') as outfile:
         yaml.dump(configs, outfile, default_flow_style=False)
-    # epoch = 1
+    epoch = 1
     while (1):
         # Training for one epoch
         loss, lr, acc = model.train_network(epoch=epoch, loader=train_loader)

@@ -161,6 +161,24 @@ class Augmentation(object):
         return data
 
 
+class AddNoiseForTestPhase(object):
+    def __init__(self, bg_dataset, max_percentage=0.2, prob=0.25):
+        self.bg_dataset = bg_dataset
+        self.max_percentage = max_percentage
+        self.prob = prob
+
+    def __call__(self, data):
+        if np.random.rand() > self.prob:
+            return data
+
+        samples = data['samples']
+        noise = random.choice(self.bg_dataset)['samples']
+        percentage = random.uniform(0, self.max_percentage)
+        data['samples'] = samples * (1 - percentage) + noise * percentage
+        return data
+
+
+
 # debug
 if __name__ == '__main__':
     from torchvision.transforms import Compose

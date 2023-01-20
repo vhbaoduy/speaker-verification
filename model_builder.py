@@ -175,7 +175,7 @@ class ECAPAModel(nn.Module):
             res.to_csv(path_to_result, index=False)
             return res
 
-    def eval_eer(self, eval_list, eval_path):
+    def eval_eer(self, eval_list, eval_path, tuning=False, thresholds=None):
         with torch.no_grad():
             self.eval()
             files = []
@@ -229,7 +229,7 @@ class ECAPAModel(nn.Module):
                 embeddings[file] = [embedding_1, embedding_2]
             scores, labels = [], []
 
-            for line in tqdm.tqdm(lines):
+            for line in lines:
                 embedding_11, embedding_12 = embeddings[line.split()[1]]
                 embedding_21, embedding_22 = embeddings[line.split()[2]]
                 # Compute the scores
@@ -242,11 +242,17 @@ class ECAPAModel(nn.Module):
                 scores.append(score)
                 labels.append(int(line.split()[0]))
 
-            # Coumpute EER and minDCF
-            EER = tuneThresholdfromScore(scores, labels, [1, 0.1])[1]
-            fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
-            minDCF, thresh = ComputeMinDcf(fnrs, fprs, thresholds, 0.05, 1, 1)
-            return EER, minDCF, thresh
+            if tuning == True:
+                # Coumpute EER and minDCF
+                result = tuneThresholdfromScore(scores, labels, [1, 0.1])
+                EER, thresh_err = result[1], result[-1]
+                fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
+                minDCF, thresh_mindcf = ComputeMinDcf(fnrs, fprs, thresholds, 0.05, 1, 1)
+                return EER, minDCF, (float(thresh_err), float(thresh_mindcf))
+            else:
+                EER = compute_eer(scores, labels, threshold=thresholds[0])
+                minDCF = compute_minDCF(scores, labels, threshold=thresholds[1])
+                return EER, minDCF, None
 
     def save_parameters(self, path):
         torch.save(self.state_dict(), path)
