@@ -3,10 +3,10 @@ Dataset:
   noise_test_paths: [ '../dataset/speech_commands_v0.01/_background_noise_'] #'../dataset/arabic/background_noise',
   rir_path: '../dataset/rir_data/RIRS_NOISES/simulated_rirs'
   musan_path: '../dataset/musan_data/musan'
-  path: &path '/loop1/0'
+  path: &path '/loop4/9_9_9_9'
 
 RunningFolder:
-  run_path: &run_path !join ['checkpoints', *path]
+  run_path: &run_path !join ['checkpoints_combine', *path]
   score_file: 'score-stage.txt'
   threshold_file: 'threshold-tuning.txt'
 
@@ -22,7 +22,7 @@ Pairs:
 AudioProcessing:
   # Init
   sample_rate: 16000
-  duration: 2 # second
+  duration: 4 # second
   add_sample: 240 #
   # Sample = sr * duration + add_sample
 
@@ -30,8 +30,8 @@ Parameters:
   lr: &lr 0.0001
   lr_decay: 0.97
   num_workers: 0
-  max_epoch: 70
-  batch_size: 128
+  max_epoch: 50
+  batch_size: 64
   scheduler: 'StepLR' # CyclicLR, StepLR, ReduceLROnPlateau
   base_lr:  0.00000001
   max_lr: *lr 

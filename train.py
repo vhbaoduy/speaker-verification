@@ -51,6 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('-tune_threshold', type=bool, default=False)
     parser.add_argument('-path_to_result', type=str)
     parser.add_argument('-gender', type=str, default='mix', choices=['mix', 'female', 'male'])
+    parser.add_argument('-set', type=str,default='dev',choices=['dev', 'eval'] )
     # Parse args
     args = parser.parse_args()
 
@@ -66,6 +67,8 @@ if __name__ == '__main__':
         'male': configs['Pairs']['Male'],
 
     }
+    name_set = args.set
+
 
     with open(args.info_data, 'r') as file_in:
         info = json.load(file_in)
@@ -129,29 +132,41 @@ if __name__ == '__main__':
                       '/' + folder_cfgs['threshold_file'], "a+")
             print('Tune threshold', args.tune_threshold)
             tuned_threshold = {'male':[], 'female':[]}
-            if args.tune_threshold:
-                threshold_store = {}
-            else:
-                tuned_threshold = json.load(open(configs['Pairs']['threshold_path']))
+            sum_eer = 0
+            sum_minDCF = 0
+            # if args.tune_threshold:
+            #     threshold_store = {}
+            # else:
+            tuned_threshold = json.load(open(configs['Pairs']['threshold_path']))
+            
+            results = {}
             for gender in eval_info:
                 if not args.tune_threshold:
                     print('Threshold', tuned_threshold[gender])
-                    eval_list = eval_info[gender]['eval_list']
-                else:
-                    eval_list = eval_info[gender]['dev_list']
+                eval_list = eval_info[gender]['%s_list'%(name_set)]
+
 
                 EER, minDCF,thresholds = model.eval_eer(
                     eval_list=eval_list, eval_path=dataset_cfgs['root_dir'],
                     tuning=args.tune_threshold,
                     thresholds=tuned_threshold[gender])
-                print("Gender %s, EER %2.2f%%, minDCF %.4f, threshold %s" % (gender, EER, minDCF,thresholds))
+                
+                results[gender] = {'eer': EER, 'minDCF': minDCF}
+                
+                sum_eer += EER
+                sum_minDCF += minDCF
+                sys.stderr.write("Gender %s, EER %2.2f%%, minDCF %.4f, threshold %s\n" % (gender, EER, minDCF,thresholds))
+                sys.stderr.flush()
                 score_file.write("Gender %s, EER %2.2f%%, minDCF %.4f, threshold %s\n" % (gender, EER, minDCF,thresholds))
                 score_file.flush()
                 
-                if args.tune_threshold:
-                    threshold_store[gender] = thresholds
-            if args.tune_threshold:
-                json.dump(threshold_store, open(folder_cfgs['run_path'] + '/thresholds.json','w'))
+                # if args.tune_threshold:
+                #     threshold_store[gender] = thresholds
+            results['overall'] = {'eer': sum_eer/2, 'minDCF': sum_minDCF/2}
+            json.dump(results, open(folder_cfgs['run_path'] + '/eval_results.json','w'))
+    
+            # if args.tune_threshold:
+            #     json.dump(threshold_store, open(folder_cfgs['run_path'] + '/thresholds.json','w'))
         else:
             res = model.eval_stage_1(
                 valid_loader, classes=info['speakers'], path_to_result=args.path_to_result)
@@ -187,26 +202,53 @@ if __name__ == '__main__':
         # Evaluation every [test_step] epochs
         if epoch % param_cfgs['test_step'] == 0:
             if args.stage == 2:
-                if acc >= best_acc:
-                    best_acc = acc
-                    model.save_parameters(
-                        folder_cfgs['run_path'] + "/model_best_acc.model")
-
-                # if EERs[-1] < best_score:
-                #     best_eer = EERs[-1]
+                # if acc >= best_acc:
+                #     best_acc = acc
                 #     model.save_parameters(
-                #         folder_cfgs['run_path'] + "/model_best_eer.model")
+                #         folder_cfgs['run_path'] + "/model_best_acc.model")
+                sum_eer = 0
+                tuned_threshold = {'male':{}, 'female':{}}
+
+                print(time.strftime("%Y-%m-%d %H:%M:%S"),
+                      " %d epoch, ACC %2.2f%%, LOSS %f" % (epoch, acc, loss))
+                score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%\n" % (
+                    epoch, lr, loss, acc))
+                score_file.flush()
+
+
+                for gender in eval_info:
+                    eval_list = eval_info[gender]['%s_list'%(name_set)]
+                    EER, minDCF, thresholds = model.eval_eer(eval_list=eval_list,
+                                                            eval_path=dataset_cfgs['root_dir'],
+                                                            tuning=True)
+                    sys.stderr.write(time.strftime("%Y-%m-%d %H:%M:%S") + 
+                                            " Gender %s, EER %2.2f%%, minDCF %.4f\n" % (gender, EER, minDCF))
+                    sys.stderr.flush()
+
+                    tuned_threshold[gender] = thresholds
+                    sum_eer += EER
+                    score_file.write("\tGender %s, EER %2.2f%%, minDCF %.4f, threshold %s\n" % (gender, EER, minDCF,thresholds))
+                    score_file.flush()
+
+
+                avg_eer = sum_eer / 2
+                if avg_eer < best_eer:
+                    best_eer = avg_eer
+                    model.save_parameters(
+                        folder_cfgs['run_path'] + "/model_best_eer.model")
+                    json.dump(tuned_threshold, open(folder_cfgs['run_path'] + '/thresholds.json','w'))
+                
+                sys.stderr.write(time.strftime("%Y-%m-%d %H:%M:%S") + 
+                      " %d epoch, EER %2.2f%%, BEST_EER %2.2f%%" % (epoch, avg_eer, best_eer))
+                sys.stderr.flush()
+                score_file.write("%d epoch, EER %2.2f%%, BEST_EER %2.2f%%\n" % (epoch, avg_eer, best_eer))
+                score_file.flush()
                 # if min_dcf < best_DCF:
                 #     best_DCF = min_dcf
                 #     model.save_parameters(
                 #         folder_cfgs['run_path'] + "/model_best_dcf.model")
 
-                print(time.strftime("%Y-%m-%d %H:%M:%S"),
-                      "%d epoch, ACC %2.2f%%, LOSS %f" % (epoch, acc, loss))
-                score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%\n" % (
-                    epoch, lr, loss, acc))
-                score_file.flush()
-
+               
                 # print(time.strftime("%Y-%m-%d %H:%M:%S"),
                 #       "%d epoch, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f" % (epoch, acc, EERs[-1], min(EERs), min_dcf, best_DCF))
                 # score_file.write("%d epoch, LR %f, LOSS %f, ACC %2.2f%%, EER %2.2f%%, bestEER %2.2f%%, minDCF %f, best minDCF %f, threshold %.4f% \n" % (
