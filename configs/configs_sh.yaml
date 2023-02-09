@@ -1,0 +1,37 @@
+AudioProcessing:
+  add_sample: 240
+  duration: 1
+  sample_rate: 16000
+Dataset:
+  musan_path: ../dataset/musan_data/musan
+  noise_test_paths:
+  - ../dataset/speech_commands_v0.01/_background_noise_
+  path: /loop1/9
+  rir_path: ../dataset/rir_data/RIRS_NOISES/simulated_rirs
+  root_dir: data
+Pairs:
+  Female:
+    eval_list: data/9/female_eval.txt
+  Male:
+    eval_list: data/9/male_eval.txt
+  threshold_path: pretrained_checkpoints/exp1/loop4/9_9_9_9/thresholds.json
+Parameters:
+  C: 1024
+  base_lr: 1.0e-08
+  batch_size: 32
+  device: cuda:2
+  lr: 0.0001
+  lr_decay: 0.97
+  lr_scheduler_gamma: 0.05
+  lr_scheduler_patience: 1
+  m: 0.2
+  max_epoch: 35
+  max_lr: 0.0001
+  num_workers: 0
+  s: 30
+  scheduler: StepLR
+  test_step: 1
+RunningFolder:
+  run_path: pretrained_checkpoints/exp1/9
+  score_file: score-stage.txt
+  threshold_file: threshold-tuning.txt

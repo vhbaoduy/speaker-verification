@@ -3,26 +3,28 @@ Dataset:
   noise_test_paths: [ '../dataset/speech_commands_v0.01/_background_noise_'] #'../dataset/arabic/background_noise',
   rir_path: '../dataset/rir_data/RIRS_NOISES/simulated_rirs'
   musan_path: '../dataset/musan_data/musan'
-  path: &path '/loop4/9_9_9_9'
+  path: &path '/loop5/1_1_1_1_1'
 
 RunningFolder:
-  run_path: &run_path !join ['checkpoints_combine', *path]
+  run_path: &run_path !join ['non_pretrained_checkpoints/exp2', *path]
   score_file: 'score-stage.txt'
   threshold_file: 'threshold-tuning.txt'
 
 Pairs:
   threshold_path : !join [*run_path,'/thresholds.json']
   Female:
-    dev_list: !join [*root_dir,*path, '/female_development.txt']
-    eval_list: !join [*root_dir,*path, '/female_evaluation.txt']
+    # dev_list: !join [*root_dir,*path, '/female_dev.txt']
+    eval_list: !join [*root_dir,*path, '/female_eval.txt']
   Male:
-    dev_list: !join [*root_dir,*path, '/male_development.txt']
-    eval_list: !join [*root_dir,*path,'/male_evaluation.txt']
+    # dev_list: !join [*root_dir,*path, '/male_development.txt']
+    eval_list: !join [*root_dir,*path,'/male_eval.txt']
+  Overall:
+    eval_list: !join [*root_dir,*path,'/all_eval.txt']
 
 AudioProcessing:
   # Init
   sample_rate: 16000
-  duration: 4 # second
+  duration: 5 # second
   add_sample: 240 #
   # Sample = sr * duration + add_sample
 
@@ -30,8 +32,8 @@ Parameters:
   lr: &lr 0.0001
   lr_decay: 0.97
   num_workers: 0
-  max_epoch: 50
-  batch_size: 64
+  max_epoch: 35
+  batch_size: 32
   scheduler: 'StepLR' # CyclicLR, StepLR, ReduceLROnPlateau
   base_lr:  0.00000001
   max_lr: *lr 

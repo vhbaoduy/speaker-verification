@@ -132,7 +132,7 @@ backup/
 .idea
 data
 process_data
-checkpoint*
+*checkpoint*
 data-stage2
 filter
 stage1
