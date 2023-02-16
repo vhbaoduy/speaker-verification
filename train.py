@@ -116,13 +116,13 @@ if __name__ == '__main__':
             # score_file = open(folder_cfgs['run_path'] +
             #           '/' + folder_cfgs['threshold_file'], "a+")
             # print('Tune threshold', args.tune_threshold)
-            # tuned_threshold = {'male':[], 'female':[]}
-            # sum_eer = 0
-            # sum_minDCF = 0
-            # if args.tune_threshold:
-            #     threshold_store = {}
-            # else:
-            # tuned_threshold = json.load(open(configs['Pairs']['threshold_path']))
+            tuned_threshold = {'male':[], 'female':[]}
+            sum_eer = 0
+            sum_minDCF = 0
+            if args.tune_threshold:
+                threshold_store = {}
+            else:
+                tuned_threshold = json.load(open(configs['Pairs']['threshold_path']))
             
             results = {}
             for gender in eval_info:
@@ -146,7 +146,7 @@ if __name__ == '__main__':
                 # if args.tune_threshold:
                 #     threshold_store[gender] = thresholds
             # results['overall'] = {'eer': sum_eer/2, 'minDCF': sum_minDCF/2}
-            json.dump(results, open(folder_cfgs['run_path'] + '/eval_results.json','w'))
+            # json.dump(results, open(folder_cfgs['run_path'] + '/eval_results.json','w'))
     
             # if args.tune_threshold:
             #     json.dump(threshold_store, open(folder_cfgs['run_path'] + '/thresholds.json','w'))

@@ -16,24 +16,24 @@ def check_duplicate(words):
 def generate_file(samples, words, n_samples):
     files = []
     names = []
-    if len(words) == 1:
-        for i, sample in enumerate(samples[words[0]]):
-            combine_list = [sample]
-            idx = sample[:-4].split('_')[-1]
-            name = (words[0] + '_%s_' % idx) + '.wav'
+    # if len(words) == 1:
+    #     for i, sample in enumerate(samples[words[0]]):
+    #         combine_list = [sample]
+    #         idx = sample[:-4].split('_')[-1]
+    #         name = (words[0] + '_%s_' % idx) + '.wav'
 
-            files.append((combine_list, name))
-            names.append(name)
-        return files
+    #         files.append((combine_list, name))
+    #         names.append(name)
+    #     return files
 
-    if check_duplicate(words):
-        for i, sample in enumerate(samples[words[0]]):
-            combine_list = [sample] * len(words)
-            idx = sample[:-4].split('_')[-1]
-            name = (words[0] + '_%s_' % idx) * len(words) + '.wav'
+    # if check_duplicate(words):
+    #     for i, sample in enumerate(samples[words[0]]):
+    #         combine_list = [sample] * len(words)
+    #         idx = sample[:-4].split('_')[-1]
+    #         name = (words[0] + '_%s_' % idx) * len(words) + '.wav'
 
-            files.append((combine_list, name))
-            names.append(name)
+    #         files.append((combine_list, name))
+    #         names.append(name)
 
     while len(files) < n_samples:
         name = ''
