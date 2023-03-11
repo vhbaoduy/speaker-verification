@@ -58,6 +58,7 @@ if __name__ == '__main__':
         info = json.load(file_in)
 
     torch.manual_seed(args.seed)
+    np.random.seed(args.seed)
 
     if args.stage == 1:
         if args.gender == 'mix':
@@ -116,23 +117,23 @@ if __name__ == '__main__':
             # score_file = open(folder_cfgs['run_path'] +
             #           '/' + folder_cfgs['threshold_file'], "a+")
             # print('Tune threshold', args.tune_threshold)
-            tuned_threshold = {'male':[], 'female':[]}
+            tuned_threshold = {'male':[], 'female':[], 'all':[]}
             sum_eer = 0
             sum_minDCF = 0
             if args.tune_threshold:
                 threshold_store = {}
             else:
-                tuned_threshold = json.load(open(configs['Pairs']['threshold_path']))
+                tuned_threshold = json.load(open('/'.join(args.init_model.split('/')[:-1]) + configs['Pairs']['threshold_path']))
             
             results = {}
             for gender in eval_info:
-                # if not args.tune_threshold:
-                #     print('Threshold', tuned_threshold[gender])
+                if not args.tune_threshold:
+                    print('Threshold', tuned_threshold[gender])
                 eval_list = eval_info[gender]['%s_list'%(name_set)]
                 EER, minDCF,thresholds = model.eval_eer(
                     eval_list=eval_list, eval_path=dataset_cfgs['root_dir'],
-                    tuning=True,
-                    thresholds=[1,1])
+                    tuning=args.tune_threshold,
+                    thresholds=tuned_threshold[gender])
                 
                 results[gender] = {'eer': EER, 'minDCF': minDCF}
                 
@@ -146,10 +147,10 @@ if __name__ == '__main__':
                 # if args.tune_threshold:
                 #     threshold_store[gender] = thresholds
             # results['overall'] = {'eer': sum_eer/2, 'minDCF': sum_minDCF/2}
-            # json.dump(results, open(folder_cfgs['run_path'] + '/eval_results.json','w'))
+            json.dump(results, open(folder_cfgs['run_path'] + '/all_eval_results_tuning_2.json','w'))
     
-            # if args.tune_threshold:
-            #     json.dump(threshold_store, open(folder_cfgs['run_path'] + '/thresholds.json','w'))
+            if args.tune_threshold:
+                json.dump(threshold_store, open(folder_cfgs['run_path'] + '/eval_thresholds.json','w'))
         else:
             res = model.eval_stage_1(
                 valid_loader, classes=info['speakers'], path_to_result=args.path_to_result)

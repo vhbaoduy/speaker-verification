@@ -1,31 +1,32 @@
 Dataset:
-  root_dir: &root_dir 'data'
+  root_dir: &root_dir 'new_data'
   noise_test_paths: [ '../dataset/speech_commands_v0.01/_background_noise_'] #'../dataset/arabic/background_noise',
   rir_path: '../dataset/rir_data/RIRS_NOISES/simulated_rirs'
   musan_path: '../dataset/musan_data/musan'
-  path: &path '/loop2/0_0'
+  path: &path '/loop3/7_7_7'
+  temp_dir: &temp_dir ''
 
 RunningFolder:
-  run_path: &run_path !join ['experiment_checkpoints/exp3', *path]
+  run_path: &run_path !join ['new_data_checkpoints/exp2', *path]
   score_file: 'score-stage.txt'
   threshold_file: 'threshold-tuning.txt'
 
 Pairs:
-  threshold_path : !join [*run_path,'/thresholds.json']
+  threshold_path : !join ['/eval_thresholds_tuning_2.json']
   Female:
     dev_list: !join [*root_dir,*path, '/female_dev.txt']
-    eval_list: !join [*root_dir,*path, '/female_eval.txt']
+    eval_list: !join [*root_dir,*temp_dir,*path, '/female_eval_2.txt']
   Male:
     dev_list: !join [*root_dir,*path, '/male_dev.txt']
-    eval_list: !join [*root_dir,*path,'/male_eval.txt']
+    eval_list: !join [*root_dir,*temp_dir,*path,'/male_eval_2.txt']
   Overall:
     dev_list: !join [*root_dir,*path, '/all_dev.txt']
-    eval_list: !join [*root_dir,*path,'/all_eval.txt']
+    eval_list: !join [*root_dir,*temp_dir,*path,'/all_eval_2.txt']
 
 AudioProcessing:
   # Init
   sample_rate: 16000
-  duration: 2 # second
+  duration: 3 # second
   add_sample: 240 #
   # Sample = sr * duration + add_sample
 
@@ -46,6 +47,6 @@ Parameters:
   m: 0.2
   s: 30
   test_step: 1
-  device: 'cuda:0'
+  device: 'cpu'
 
 

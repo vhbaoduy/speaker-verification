@@ -192,7 +192,7 @@ class ECAPAModel(nn.Module):
                                       stage=2)
             trans_2 = build_transform(audio_config=self.audio_cfgs,
                                       mode='eval',
-                                      num_stack=5,
+                                      num_stack=3,
                                       stage=2)
             for idx, file in enumerate(setfiles):
                 audio, sr = utils.load_audio(os.path.join(

@@ -139,3 +139,6 @@ stage1
 *.model
 logs/
 new_data
+my_audio_mnist*
+*.zip
+*.txt
