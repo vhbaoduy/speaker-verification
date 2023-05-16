@@ -138,6 +138,7 @@ filter
 stage1
 *.model
 logs/
+*log*
 new_data
 my_audio_mnist*
 *.zip

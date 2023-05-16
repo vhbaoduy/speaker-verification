@@ -19,6 +19,7 @@ class GeneralDataset(Dataset):
                  dataset_name='arabic',
                  stage=1,
                  gender='mix',
+                 aug_path=None,
                  transform=None):
         """
         :param root_dir: Path to root dataset path_to/dataset/
@@ -39,6 +40,12 @@ class GeneralDataset(Dataset):
         self.transform = transform
         self.dataset_name = dataset_name
         self.stage = stage
+        self.bg_dataset = None
+        if aug_path is not None:
+            self.bg_dataset = AugmentationDataset(musan_path=aug_path['musan_path'],
+                                             rir_path=aug_path['rir_path'])
+
+            # augment = Augmentation(bg_dataset=bg_dataset)
 
     def __len__(self):
         return len(self.df)
@@ -62,6 +69,23 @@ class GeneralDataset(Dataset):
 
         if self.stage == 1:
             data['word'] = str(row_data['word']),
+        # if self.bg_dataset is not None:
+        #     augtype = random.randint(0, 5)
+        # # audio = self.bg_dataset.add_reverberate(audio)
+
+        #     if augtype == 0:  # Original
+        #         audio = audio
+        #     elif augtype == 1:  # Reverberation
+        #         audio = self.bg_dataset.add_reverberate(audio)
+        #     elif augtype == 2:  # Babble
+        #         audio = self.bg_dataset.add_noise(audio, 'speech')
+        #     elif augtype == 3:  # Music
+        #         audio = self.bg_dataset.add_noise(audio, 'music')
+        #     elif augtype == 4:  # Noise
+        #         audio = self.bg_dataset.add_noise(audio, 'noise')
+        #     elif augtype == 5:  # Television noise
+        #         audio = self.bg_dataset.add_noise(audio, 'speech')
+        #         audio = self.bg_dataset.add_noise(audio, 'music')
 
         if self.transform is not None:
             data = self.transform(data)
@@ -159,3 +183,50 @@ class AugmentationDataset(object):
 
         noise = np.sum(np.concatenate(noises, axis=0), axis=0, keepdims=True)
         return audio + noise
+
+
+class VoxCelebDataset(Dataset):
+    def __init__(self, train_list, train_path,sample_rate=16000, transform=None):
+        super(VoxCelebDataset, self).__init__()
+        self.train_path = train_path
+        self.transform = transform
+        self.sample_rate = sample_rate
+        # Load data & labels
+        self.data_list  = []
+        self.data_label = []
+        lines = open(train_list).read().splitlines()
+        dictkeys = list(set([x.split()[0] for x in lines]))
+        dictkeys.sort()
+        dictkeys = { key : ii for ii, key in enumerate(dictkeys) }
+        for index, line in enumerate(lines):
+            speaker_label = dictkeys[line.split()[0]]
+            file_name     = os.path.join(train_path, line.split()[1])
+            self.data_label.append(speaker_label)
+            self.data_list.append(file_name)
+
+    def __len__(self):
+        return len(self.data_list)
+
+    def __getitem__(self, idx):
+        wav, _ = utils.load_audio(
+            self.data_list[idx], self.sample_rate)
+        # print(row_data)
+        # label = str(row_data['speaker'])
+        # if self.dataset_name == 'audio_mnist':
+        #     if int(row_data['speaker']) < 10:
+        #         label = '0' + label
+        # target = utils.label2index(self.classes,label)
+        data = {
+            'samples': wav,
+            'sample_rate': self.sample_rate,
+            'target': self.data_label[idx],
+            # 'path': self.data_list[idx]
+        }
+
+        # if self.stage == 1:
+        #     data['word'] = str(row_data['word']),
+
+        if self.transform is not None:
+            data = self.transform(data)
+
+        return data

@@ -1,0 +1,52 @@
+Dataset:
+  root_dir: &root_dir '../voxceleb_trainer/dataset/VoxCeleb1/test/wav'
+  noise_test_paths: [ '../dataset/speech_commands_v0.01/_background_noise_'] #'../dataset/arabic/background_noise',
+  rir_path: '../dataset/rir_data/RIRS_NOISES/simulated_rirs'
+  musan_path: '../dataset/musan_data/musan'
+  path: &path '/loop3/7_7_7'
+  temp_dir: &temp_dir ''
+
+RunningFolder:
+  run_path: &run_path 'pruning_results/speed_up_2'
+  score_file: 'score-stage.txt'
+  threshold_file: 'threshold-tuning.txt'
+
+Pairs:
+  threshold_path : !join ['/eval_thresholds_tuning_2.json']
+  Female:
+    dev_list: !join [*root_dir,*path, '/female_dev.txt']
+    eval_list: !join [*root_dir,*temp_dir,*path, '/female_eval_2.txt']
+  Male:
+    dev_list: !join [*root_dir,*path, '/male_dev.txt']
+    eval_list: !join [*root_dir,*temp_dir,*path,'/male_eval_2.txt']
+  Overall:
+    dev_list: !join [*root_dir,*path, '/all_dev.txt']
+    eval_list: !join [*root_dir,*temp_dir,*path,'/all_eval_2.txt']
+
+AudioProcessing:
+  # Init
+  sample_rate: 16000
+  duration: 2 # second
+  add_sample: 240 #
+  # Sample = sr * duration + add_sample
+
+Parameters:
+  lr: &lr 0.0001
+  lr_decay: 0.97
+  num_workers: 8
+  max_epoch: 20
+  batch_size: 400
+  scheduler: 'StepLR' # CyclicLR, StepLR, ReduceLROnPlateau
+  base_lr:  0.00000001
+  max_lr: *lr 
+  lr_scheduler_patience: 1
+  lr_scheduler_gamma: 0.05
+
+  # For TDNN
+  C: 128
+  m: 0.2
+  s: 30
+  test_step: 1
+  device: 'cuda:0'
+
+

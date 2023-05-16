@@ -20,7 +20,7 @@ class FixAudioLength(object):
         max_length = int(self.time * sample_rate) + self.add_sample
         if len(samples) <= max_length:
             shortage = max_length - len(samples)
-            samples = np.pad(samples, (0, shortage), "constant")
+            samples = np.pad(samples, (0, shortage), "constant") #constant
         start_frame = np.int64(
                 random.random() * (samples.shape[0] - max_length))
         samples = samples[start_frame:start_frame + max_length]
@@ -130,6 +130,7 @@ class ToTensor(object):
             tensor -= mean
             tensor /= std
         data[self.tensor_name] = tensor
+        data.pop(self.np_name)
         return data
 
 

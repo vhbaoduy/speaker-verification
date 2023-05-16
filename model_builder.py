@@ -20,6 +20,7 @@ from transforms import build_transform
 import copy
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+import random
 
 
 class ECAPAModel(nn.Module):
@@ -63,7 +64,7 @@ class ECAPAModel(nn.Module):
         self.scheduler.step(epoch - 1)
         index, top1, loss = 0, 0, 0
         lr = self.optim.param_groups[0]['lr']
-
+        num=1
         for num, batch in enumerate(loader, start=1):
             self.zero_grad()
             labels = torch.LongTensor(batch['target']).to(self.device)
@@ -186,35 +187,52 @@ class ECAPAModel(nn.Module):
                 files.append(line.split()[2])
             setfiles = list(set(files))
             setfiles.sort()
-            trans_1 = build_transform(audio_config=self.audio_cfgs,
-                                      mode='eval',
-                                      num_stack=1,
-                                      stage=2)
-            trans_2 = build_transform(audio_config=self.audio_cfgs,
-                                      mode='eval',
-                                      num_stack=3,
-                                      stage=2)
+            # trans_1 = build_transform(audio_config=self.audio_cfgs,
+            #                           mode='eval',
+            #                           num_stack=1,
+            #                           stage=2)
+            # trans_2 = build_transform(audio_config=self.audio_cfgs,
+            #                           mode='eval',
+            #                           num_stack=5,
+            #                           stage=2)
             for idx, file in enumerate(setfiles):
                 audio, sr = utils.load_audio(os.path.join(
                     eval_path, file), self.audio_cfgs['sample_rate'])
-                data_1 = {
-                    'samples': audio,
-                    'sample_rate': sr
-                }
-                data_2 = copy.deepcopy(data_1)
+                # data_1 = {
+                #     'samples': audio,
+                #     'sample_rate': sr
+                # }
+                # data_2 = copy.deepcopy(data_1)
 
                 # audio, _ = soundfile.read(os.path.join(eval_path, file))
                 # Full utterance
                 # data_1 = torch.FloatTensor(numpy.stack([audio], axis=0)).cuda()
-                data_1 = trans_1(data_1)
+                # data_1 = trans_1(data_1)
                 # print(data_1)
                 # print("#"*10, data)
                 # Splited utterance matrix
-                data_2 = trans_2(data_2)
+                # data_2 = trans_2(data_2)
                 # from IPython import embed
                 # embed()
-                data_1 = data_1['input'].to(self.device)
-                data_2 = data_2['input'].to(self.device)
+                data_1= np.stack([audio], axis=0)
+
+                max_length = int(self.audio_cfgs['duration'] * self.audio_cfgs['sample_rate']) + self.audio_cfgs['add_sample']
+                if len(audio) <= max_length:
+                    shortage = max_length - len(audio)
+                    audio = np.pad(audio, (0, shortage), "constant") #constant
+                start_frame = np.int64(
+                        random.random() * (audio.shape[0] - max_length))
+                audio = audio[start_frame:start_frame + max_length]
+                
+                feats = []
+                start_frame = np.linspace(0, len(audio) - max_length, num=5)
+                for asf in start_frame:
+                    feats.append(audio[int(asf):int(asf) + max_length])
+                feats = np.stack(feats, axis=0).astype(np.float32)
+                data_2 = feats
+                    
+                data_1 =  torch.FloatTensor(data_1).to(self.device)
+                data_2 =  torch.FloatTensor(data_2).to(self.device)
                 # data_2 = data_2.unsqueeze(1)
                 # Speaker embeddings
                 with torch.no_grad():

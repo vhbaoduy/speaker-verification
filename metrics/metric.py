@@ -35,7 +35,11 @@ class AccumulatedAccuracyMetric(Metric):
         self.total = 0
 
     def value(self):
-        return 100 * float(self.correct) / self.total
+        try:
+            acc = 100 * float(self.correct) / self.total
+        except:
+            acc = 0
+        return acc
 
     def name(self):
         return 'Accuracy'
