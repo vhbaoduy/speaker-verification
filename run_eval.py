@@ -27,9 +27,9 @@ def eval_data(configs,args):
     folder_cfgs = configs['RunningFolder']
 
     eval_info = {
-        'female': configs['Pairs']['Female'],
+        # 'female': configs['Pairs']['Female'],
         'male': configs['Pairs']['Male'],
-        'all': configs['Pairs']['Overall'],
+        # 'all': configs['Pairs']['Overall'],
     }
     name_set = args['set']
 
@@ -80,18 +80,18 @@ def eval_data(configs,args):
         if args['tune_threshold']:
             threshold_store[gender] = thresholds
     # results['overall'] = {'eer': sum_eer/2, 'minDCF': sum_minDCF/2}
-    json.dump(results, open(folder_cfgs['run_path'] + '/all_%s_result.json'%(name_set),'w'))
+    json.dump(results, open(folder_cfgs['run_path'] + '/all_%s_result_real_data.json'%(name_set),'w'))
     if args['tune_threshold']:
-                json.dump(threshold_store, open(folder_cfgs['run_path'] + '/%s_thresholds.json'%(name_set),'w'))
+                json.dump(threshold_store, open(folder_cfgs['run_path'] + '/%s_thresholds_real_data.json'%(name_set),'w'))
 
     return
 
 if __name__ == '__main__':
-    start_digit = 2
-    end_digit = 2
-    for exp in ['exp3']:
+    start_digit = 0
+    end_digit = 9
+    for exp in ['exp1','exp2','exp3']:
         EXP = exp
-        for loop in [2]:
+        for loop in [1,2,3,4,5]:
             if loop != 1:
                 path_threshold = 'eval_thresholds.json'
                 FOLDER_CHECKPOINTS = 'checkpoints/pretrained/channel_128'
@@ -104,13 +104,14 @@ if __name__ == '__main__':
             for i in range(start_digit,end_digit+1):
                 text = str(i) + ('_' + str(i))*(LOOP-1)
                 CONFIGS['Parameters']['device'] = DEVICE
+                CONFIGS['Parameters']['C'] = 128
                 CONFIGS['Dataset']['path'] = '/loop%s/%s' % (LOOP, text)
                 CONFIGS['AudioProcessing']['duration'] = LOOP
-                CONFIGS['Dataset']['root_dir'] = 'new_data'
+                CONFIGS['Dataset']['root_dir'] = 'my_audio_mnist_0_9'
                 CONFIGS['RunningFolder']['run_path'] = os.path.join(FOLDER_CHECKPOINTS,EXP,'loop%s/%s' % (LOOP, text))
                 CONFIGS['Pairs']['threshold_path'] = os.path.join(FOLDER_CHECKPOINTS,EXP,'loop%s/%s/%s' % (LOOP, text,path_threshold))
                 # CONFIGS['Pairs']['threshold_path'] = ''
-                CONFIGS['Pairs']['Male']['eval_list'] =  os.path.join(CONFIGS['Dataset']['root_dir'],'loop%s/%s' % (LOOP, text),'male_eval_2.txt')
+                CONFIGS['Pairs']['Male']['eval_list'] =  os.path.join(CONFIGS['Dataset']['root_dir'],'loop%s/%s' % (LOOP, text),'male_pairs_tw.txt')
                 # CONFIGS['Pairs']['Male']['eval_list'] =  os.path.join('my_audio_mnist_0_9','loop%s/%s' % (LOOP, text),'male_eval_no_tw.txt')
                 CONFIGS['Pairs']['Female']['eval_list'] =  os.path.join(CONFIGS['Dataset']['root_dir'],'loop%s/%s' % (LOOP, text),'female_eval_2.txt')
                 CONFIGS['Pairs']['Overall']['eval_list'] =  os.path.join(CONFIGS['Dataset']['root_dir'],'loop%s/%s' % (LOOP, text),'all_eval_2.txt')
@@ -135,7 +136,7 @@ if __name__ == '__main__':
     # # WORDS = [(6, 0),(6, 1), (6, 3), (6, 9)]
     # # WORDS = [(9, 0), (9, 1), (9, 3), (9, 6)]
 
-    # FOLDER_CHECKPOINTS = 'pruning_checkpoints/exp1/loop2_experiments'
+    # FOLDER_CHECKPOINTS = 'checkpoints/non_pretrained/channel_1024_old/exp1/loop2_experiments'
     # path_threshold = 'eval_thresholds_no_tw.json'
     # for exp in ['']:
     #     EXP = exp
