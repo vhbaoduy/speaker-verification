@@ -4,6 +4,12 @@ import numpy as np
 import os
 import argparse
 
+
+
+"""
+    This file is used for google speech command
+"""
+
 WORDS = {
     'mix': ["five", "four", "nine", "one", "seven", "six",
             "three", "two", "zero", "eight", 'yes', 'no', 'up', 'down', 'left', 'right', 'on', 'off', 'stop', 'go'],

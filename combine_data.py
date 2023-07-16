@@ -13,32 +13,14 @@ def check_duplicate(words):
     return False
 
 
-def generate_file(speaker,samples, words, n_samples, mode):
+def generate_file(speaker, samples, words, n_samples, mode):
     files = []
     names = []
-    # if len(words) == 1:
-    #     for i, sample in enumerate(samples[words[0]]):
-    #         combine_list = [sample]
-    #         idx = sample[:-4].split('_')[-1]
-    #         name = (words[0] + '_%s_' % idx) + '.wav'
-
-    #         files.append((combine_list, name))
-    #         names.append(name)
-    #     return files
-
-    # if check_duplicate(words):
-    #     for i, sample in enumerate(samples[words[0]]):
-    #         combine_list = [sample] * len(words)
-    #         idx = sample[:-4].split('_')[-1]
-    #         name = (words[0] + '_%s_' % idx) * len(words) + '.wav'
-
-    #         files.append((combine_list, name))
-    #         names.append(name)
-
     if mode == 'random':
         while len(files) < n_samples:
             name = words[0] + '_%s_' % len(files)
-            combine_list = ["%s/%s_%s_%s.wav" % (speaker,words[0], speaker, len(files))]
+            combine_list = ["%s/%s_%s_%s.wav" %
+                            (speaker, words[0], speaker, len(files))]
             # for w in words:
             #     e = random.choice(samples[w])
             #     idx = e[:-4].split('_')[-1]
@@ -46,10 +28,11 @@ def generate_file(speaker,samples, words, n_samples, mode):
             #     combine_list.append(e)
             indexes = [len(files)]
             for i in range(1, len(words)):
-                idx = random.choice(list(set([x for x in range(50)]) - set(indexes)))
+                idx = random.choice(
+                    list(set([x for x in range(50)]) - set(indexes)))
                 indexes.append(idx)
 
-                samp = "%s/%s_%s_%s.wav" % (speaker,words[i], speaker, idx)
+                samp = "%s/%s_%s_%s.wav" % (speaker, words[i], speaker, idx)
                 name += words[i] + '_%s_' % idx
                 combine_list.append(samp)
             name += '.wav'
@@ -68,7 +51,7 @@ def generate_file(speaker,samples, words, n_samples, mode):
                     name += w + '_%s_' % idx
                     combine_list.append(e)
                 else:
-                    samp = "%s/%s_%s_%s.wav" % (speaker,w, speaker, idx)
+                    samp = "%s/%s_%s_%s.wav" % (speaker, w, speaker, idx)
                     name += w + '_%s_' % idx
                     combine_list.append(samp)
             name += '.wav'
@@ -115,7 +98,7 @@ def create_data(config):
             sp_str = sp
             sp = str(int(sp))
         for w in config['words']:
-            
+
             #     w = int(w)
             filter = df[(df['speaker'] == sp) & (df['word'] == w)]
             assert len(filter) > 0
@@ -131,7 +114,8 @@ def create_data(config):
         path = os.path.join(config['out_dir'], str(sp))
         if not os.path.exists(path):
             os.mkdir(path)
-        combine_files = generate_file(sp, info_combine[sp], config['words'], n_samples=config['n_samples'], mode=config['mode'])
+        combine_files = generate_file(
+            sp, info_combine[sp], config['words'], n_samples=config['n_samples'], mode=config['mode'])
         # print(combine_files[0][0])
         for i, (files, name) in enumerate(combine_files):
             des_path = os.path.join(path, name)
