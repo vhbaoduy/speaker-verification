@@ -1,12 +1,12 @@
 root_dir: './data/audio_mnist'
-out_dir: './meta_data/audio_mnist/stage_1'
+out_dir: './meta_data'
 split_ratio:
   train: 0.6
   val: 0.2
   test: 0.2
 dataset_name: audio_mnist # google_speech_v0.01, google_speech_v0.02, audio_mnist, arabic
 filtered_df: '' # for google_speech
-info_path: './prepare_data' # for stage 2
-stage: 1
+info_path: './meta_data/info.json' # for stage 2
+stage: 2
 seed: 2023
 verification_num: 0 # for stage 2

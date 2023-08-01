@@ -7,7 +7,7 @@ Dataset:
   temp_dir: &temp_dir ''
 
 RunningFolder:
-  run_path: &run_path !join ['checkpoints/pretrained/channel_64/exp3', *path]
+  run_path: &run_path !join ['checkpoints/non_pretrained/channel_64/exp1', *path]
   score_file: 'score-stage.txt'
   threshold_file: 'threshold-tuning.txt'
 
@@ -47,6 +47,6 @@ Parameters:
   m: 0.2
   s: 30
   test_step: 1
-  device: 'cuda:1'
+  device: 'cuda:0'
 
 
